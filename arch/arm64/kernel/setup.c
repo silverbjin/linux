@@ -180,7 +180,8 @@ static void __init smp_build_mpidr_hash(void)
 	if (mpidr_hash_size() > 4 * num_possible_cpus())
 		pr_warn("Large number of MPIDR hash buckets detected\n");
 }
-
+// IMRT> DT의 물리주소를 받아 fixmap의 가상주소에 매핑하고,
+// 	early init에 필요한 정보를 업데이트 한다.
 static void __init setup_machine_fdt(phys_addr_t dt_phys)
 {
 	void *dt_virt = fixmap_remap_fdt(dt_phys);
@@ -263,7 +264,10 @@ void __init setup_arch(char **cmdline_p)
 	// IMRT> 디바이스 제어를위한 레지스터를 fixmap영역에 매핑한다.
 	early_ioremap_init();
 
-	// IMRT> 
+	// IMRT> FDT를 읽어 머신 초기화
+	// 	boot_command_line, initrd_start, end
+	// 	dt_root_size_cells, dt_root_addr_cells,
+	//	memory memblock에 메모리 등록
 	setup_machine_fdt(__fdt_pointer);
 
 	parse_early_param();

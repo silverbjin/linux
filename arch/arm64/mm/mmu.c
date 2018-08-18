@@ -184,6 +184,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
 	} while (addr = next, addr != end);
 }
 
+// IMRT> XXX 2018-08-18 ===============================================
 static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
 		     phys_addr_t phys, pgprot_t prot,
 		     phys_addr_t (*pgtable_alloc)(void), int flags)
@@ -221,6 +222,7 @@ static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
 	pmd_clear_fixmap();
 }
 
+// IMRT> pudp에서 접근할 pmd 영역 지정
 static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
 				unsigned long end, phys_addr_t phys,
 				pgprot_t prot,
@@ -245,6 +247,8 @@ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
 	do {
 		pgprot_t __prot = prot;
 
+		// IMRT> cont_addr로 할당가능한 다음 pmd를 구함.
+		// 	cont_addr은 pmd_size * 16
 		next = pmd_cont_addr_end(addr, end);
 
 		/* use a contiguous mapping if the range is suitably aligned */
@@ -252,6 +256,7 @@ static void alloc_init_cont_pmd(pud_t *pudp, unsigned long addr,
 		    (flags & NO_CONT_MAPPINGS) == 0)
 			__prot = __pgprot(pgprot_val(prot) | PTE_CONT);
 
+		// IMRT> pmd addr부터 next까지의 영역을 초기화
 		init_pmd(pudp, addr, next, phys, __prot, pgtable_alloc, flags);
 
 		phys += next - addr;
@@ -297,6 +302,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
 		/*
 		 * For 4K granule only, attempt to put down a 1GB block
 		 */
+		// IMRT> huge_pud를 사용하는 경우
 		if (use_1G_block(addr, next, phys) &&
 		    (flags & NO_BLOCK_MAPPINGS) == 0) {
 			pud_set_huge(pudp, phys, prot);
@@ -308,6 +314,7 @@ static void alloc_init_pud(pgd_t *pgdp, unsigned long addr, unsigned long end,
 			BUG_ON(!pgattr_change_is_safe(pud_val(old_pud),
 						      READ_ONCE(pud_val(*pudp))));
 		} else {
+			// IMRT> huge_pud로 사용하지 않는 pud의 경우
 			alloc_init_cont_pmd(pudp, addr, next, phys, prot,
 					    pgtable_alloc, flags);
 
@@ -342,6 +349,7 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
 
 	end = addr + length;
 	do {
+		// IMRT> next: 다음 pgd entry의 값
 		next = pgd_addr_end(addr, end);
 		alloc_init_pud(pgdp, addr, next, phys, prot, pgtable_alloc,
 			       flags);
@@ -869,6 +877,7 @@ void __set_fixmap(enum fixed_addresses idx,
 
 void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 {
+	// IMRT> dt_virt_base: fixmap에서 dt를 로딩할 block의 base address
 	const u64 dt_virt_base = __fix_to_virt(FIX_FDT);
 	int offset;
 	void *dt_virt;
@@ -899,7 +908,9 @@ void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 	BUILD_BUG_ON(__fix_to_virt(FIX_FDT_END) >> SWAPPER_TABLE_SHIFT !=
 		     __fix_to_virt(FIX_BTMAP_BEGIN) >> SWAPPER_TABLE_SHIFT);
 
+	// IMRT> dt_phys의 시작위치가 SWAPPER_BLOCK_SIZE와 얼마나 차이가 나는지 저장
 	offset = dt_phys % SWAPPER_BLOCK_SIZE;
+	// IMRT> dt_virt: 물리 주소와 가상주소의 1:1 매핑을 위한 offset 보정이 적용된 DT의 base 주소
 	dt_virt = (void *)dt_virt_base + offset;
 
 	/* map the first chunk so we can read the size from the header */
@@ -913,6 +924,7 @@ void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 	if (*size > MAX_FDT_SIZE)
 		return NULL;
 
+	// IMRT> DTB를 fixmap 영역에 매핑하기 위해 offset 보정된 fixmap 주소와 size를 사용해서 메모리를 매핑한다.
 	if (offset + *size > SWAPPER_BLOCK_SIZE)
 		create_mapping_noalloc(round_down(dt_phys, SWAPPER_BLOCK_SIZE), dt_virt_base,
 			       round_up(offset + *size, SWAPPER_BLOCK_SIZE), prot);
@@ -944,6 +956,8 @@ int __init arch_ioremap_pmd_supported(void)
 	return 1;
 }
 
+// IMRT> 사용중이 아닌 pud를 인자로 들어온 pudp에 연결한다.
+// 이때 prot의 속성값을 사용하여 huge_pud로 설정한다.
 int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
 {
 	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
