@@ -260,8 +260,10 @@ void __init setup_arch(char **cmdline_p)
 	// IMRT> fixmap은 컴파일 타임에 가상 주소공간이 이미 결정된 매핑 영역이다.
 	// 매핑 서브시스템이 활성화되기 전에 매핑이 필요할 때 사용한다.
 	early_fixmap_init();
+	// IMRT> 디바이스 제어를위한 레지스터를 fixmap영역에 매핑한다.
 	early_ioremap_init();
 
+	// IMRT> 
 	setup_machine_fdt(__fdt_pointer);
 
 	parse_early_param();

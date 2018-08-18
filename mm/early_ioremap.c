@@ -80,6 +80,7 @@ void __init early_ioremap_setup(void)
 		if (WARN_ON(prev_map[i]))
 			break;
 
+	// IMRT> slot_virt[n]에 fixmap의 특정 위치를256K 단위로 지정한다.
 	for (i = 0; i < FIX_BTMAPS_SLOTS; i++)
 		slot_virt[i] = __fix_to_virt(FIX_BTMAP_BEGIN - NR_FIX_BTMAPS*i);
 }
