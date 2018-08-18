@@ -755,6 +755,7 @@ static inline pud_t * fixmap_pud(unsigned long addr)
 
 	BUG_ON(pgd_none(pgd) || pgd_bad(pgd));
 
+	// IMRT> pgdp에서 pud의 entry address를 리턴
 	return pud_offset_kimg(pgdp, addr);
 }
 
@@ -779,17 +780,25 @@ static inline pte_t * fixmap_pte(unsigned long addr)
  * lm_alias so __p*d_populate functions must be used to populate with the
  * physical address from __pa_symbol.
  */
+// IMRT> pgd, pmd, pud, pte를 초기화
 void __init early_fixmap_init(void)
 {
 	// IMRT> pgd(page global directory), pud(page upper directory), pmd(page midlevel directory), pte(page table entry)
 	pgd_t *pgdp, pgd;
 	pud_t *pudp;
 	pmd_t *pmdp;
+	// IMRT> .lds에 설정한 fixmap address 영역을 addr에 전달한다.
 	unsigned long addr = FIXADDR_START;
 
+	// IMRT> FIXMAP 영역에서 pgdp의 위치를 구한다.
 	pgdp = pgd_offset_k(addr);
+	// IMRT> pgd = *pgdp READ_ONCE(memory barrier를 구현한 매크로)
 	pgd = READ_ONCE(*pgdp);
+	// IMRT> CONFIG_PGTABLE_LEVELS = 4 (Kconfig)
 	if (CONFIG_PGTABLE_LEVELS > 3 &&
+	// IMRT> pgd_none(): pgd가 null인지 확인하는 매크로
+	// IMRT> pgd_page_paddr():
+	// IMRT> __pa_symbol():
 	    !(pgd_none(pgd) || pgd_page_paddr(pgd) == __pa_symbol(bm_pud))) {
 		/*
 		 * We only end up here if the kernel mapping and the fixmap
@@ -799,13 +808,18 @@ void __init early_fixmap_init(void)
 		BUG_ON(!IS_ENABLED(CONFIG_ARM64_16K_PAGES));
 		pudp = pud_offset_kimg(pgdp, addr);
 	} else {
+		// IMRT> 최초 실행 시 이 분기로 점프함.
+		// IMRT> pgd entry와 다음 page table인 pud table을 연결하여 pgd entry를 활성화 하는 함수.
 		if (pgd_none(pgd))
 			__pgd_populate(pgdp, __pa_symbol(bm_pud), PUD_TYPE_TABLE);
+		// IMRT> addr의 pud entry 주소를 반환한다.
 		pudp = fixmap_pud(addr);
 	}
 	if (pud_none(READ_ONCE(*pudp)))
+		// IMRT> pud entry와 다음 page table인 pmd table을 연결하여 pud entry를 활성화 하는 함수.
 		__pud_populate(pudp, __pa_symbol(bm_pmd), PMD_TYPE_TABLE);
 	pmdp = fixmap_pmd(addr);
+		// IMRT> pmd entry와 다음 page table인 pte table을 연결하여 pmd entry를 활성화 하는 함수.
 	__pmd_populate(pmdp, __pa_symbol(bm_pte), PMD_TYPE_TABLE);
 
 	/*

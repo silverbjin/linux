@@ -537,7 +537,8 @@ asmlinkage __visible void __init start_kernel(void)
 
 // boot_cpu_init : 현재 cpu의 online|active|present|possible 상태를 set한다.
 	boot_cpu_init();
-// page_address_init : CONFIG_HIGHMEM이 설정되어 있지 않을 경우, 아무 동작도 하지 않는다. (arm64에서는 설정되지 않는다)
+// page_address_init : CONFIG_HIGHMEM이 설정되어 있지 않을 경우, 아무 동작도 하지 않는다.
+//(arm64에서는 설정되지 않는다)
 	page_address_init();
 // linux_banner 출력
 	pr_notice("%s", linux_banner);

@@ -73,6 +73,8 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pudp)
 
 static inline void __pgd_populate(pgd_t *pgdp, phys_addr_t pudp, pgdval_t prot)
 {
+	// IMRT> protection type (prot == 3)
+	// pdgp에 pud array의base address를 등록함
 	set_pgd(pgdp, __pgd(__phys_to_pgd_val(pudp) | prot));
 }
 
