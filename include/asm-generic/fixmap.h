@@ -16,7 +16,9 @@
 #define __ASM_GENERIC_FIXMAP_H
 
 #include <linux/bug.h>
-
+// IMRT > FIXADDR_TOP : fixmap 영역의 끝 주소
+// FIXADDR_TOP에서 FIX_FDT Page 갯수만큼 건너뛴 주소를 반환
+// FIXMAP에서 FDT 영역의 시작주소(가상)를 반환
 #define __fix_to_virt(x)	(FIXADDR_TOP - ((x) << PAGE_SHIFT))
 #define __virt_to_fix(x)	((FIXADDR_TOP - ((x)&PAGE_MASK)) >> PAGE_SHIFT)
 

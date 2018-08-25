@@ -63,6 +63,7 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
  * Macros to convert between a physical address and its placement in a
  * page table entry, taking care of 52-bit addresses.
  */
+// IMRT > default ARM64_PA_BITS_48
 #ifdef CONFIG_ARM64_PA_BITS_52
 #define __pte_to_phys(pte)	\
 	((pte_val(pte) & PTE_ADDR_LOW) | ((pte_val(pte) & PTE_ADDR_HIGH) << 36))
@@ -501,8 +502,10 @@ static inline phys_addr_t pud_page_paddr(pud_t pud)
 }
 
 /* Find an entry in the second-level page table. */
+//IMRT > PTRS_PER_PMD 1 <<13
+//IMRT > addr의 offset 값을 가져옴
 #define pmd_index(addr)		(((addr) >> PMD_SHIFT) & (PTRS_PER_PMD - 1))
-
+//IMRT > pudp와 pmd 인덱스를 이용하여 pmd의 물리주소를 구한다
 #define pmd_offset_phys(dir, addr)	(pud_page_paddr(READ_ONCE(*(dir))) + pmd_index(addr) * sizeof(pmd_t))
 #define pmd_offset(dir, addr)		((pmd_t *)__va(pmd_offset_phys((dir), (addr))))
 
@@ -584,7 +587,6 @@ static inline phys_addr_t pgd_page_paddr(pgd_t pgd)
 
 /* to find an entry in a page-table-directory */
 #define pgd_index(addr)		(((addr) >> PGDIR_SHIFT) & (PTRS_PER_PGD - 1))
-
 #define pgd_offset_raw(pgd, addr)	((pgd) + pgd_index(addr))
 
 #define pgd_offset(mm, addr)	(pgd_offset_raw((mm)->pgd, (addr)))

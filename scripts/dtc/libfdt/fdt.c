@@ -54,7 +54,7 @@
 #include <libfdt.h>
 
 #include "libfdt_internal.h"
-
+// IMRT > FDT Header 유효한지 확인
 int fdt_check_header(const void *fdt)
 {
 	if (fdt_magic(fdt) == FDT_MAGIC) {

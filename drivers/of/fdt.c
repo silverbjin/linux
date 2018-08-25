@@ -701,6 +701,7 @@ void __init early_init_fdt_reserve_self(void)
  * used to extract the memory information at boot before we can
  * unflatten the tree
  */
+// IMRT > fdt node를 Device name을 얻어 it함수 호출 후 rc 값을 리턴한다.
 int __init of_scan_flat_dt(int (*it)(unsigned long node,
 				     const char *uname, int depth,
 				     void *data),
@@ -906,6 +907,7 @@ static void __early_init_dt_declare_initrd(unsigned long start,
  * early_init_dt_check_for_initrd - Decode initrd location from flat tree
  * @node: reference to node containing initrd location ('chosen')
  */
+// IMRT > initrd의 시작주소(가상주소)와 끝주소를 정의한다.
 static void __init early_init_dt_check_for_initrd(unsigned long node)
 {
 	u64 start, end;
@@ -986,6 +988,7 @@ int __init early_init_dt_scan_chosen_stdout(void)
 /**
  * early_init_dt_scan_root - fetch the top level address and size cells
  */
+//IMRT > DT에서 Root #size-cells와 #address-cells를 정의해준다.
 int __init early_init_dt_scan_root(unsigned long node, const char *uname,
 				   int depth, void *data)
 {
@@ -993,7 +996,7 @@ int __init early_init_dt_scan_root(unsigned long node, const char *uname,
 
 	if (depth != 0)
 		return 0;
-
+//IMRT > cell : dt에서의 단위
 	dt_root_size_cells = OF_ROOT_NODE_SIZE_CELLS_DEFAULT;
 	dt_root_addr_cells = OF_ROOT_NODE_ADDR_CELLS_DEFAULT;
 
@@ -1046,15 +1049,16 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 		reg = of_get_flat_dt_prop(node, "reg", &l);
 	if (reg == NULL)
 		return 0;
-
+    //IMRT > reg 값의 시작주소고, endp 값의 끝주소
+    //dt에 hotpluggable이 설정되어 있으면 memblock을 부팅 이후에도 계속 사용함
 	endp = reg + (l / sizeof(__be32));
 	hotpluggable = of_get_flat_dt_prop(node, "hotpluggable", NULL);
 
 	pr_debug("memory scan node %s, reg size %d,\n", uname, l);
-
+    //IMRT > xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 2018-08-26
 	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
 		u64 base, size;
-
+        //IMRT > base는 addr값이 정의되고, size는 size가 정의된다.
 		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
 		size = dt_mem_next_cell(dt_root_size_cells, &reg);
 
@@ -1075,7 +1079,9 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 
 	return 0;
 }
-
+// IMRT > chosen에서 initrd 시작 주소와 끝 주소를 설정하고,
+// bootargs를 읽어 boot_command_line에 복사한다.
+// bootargs가 없을 경우 CONFIG_CMDLINE를 복사한다.
 int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 				     int depth, void *data)
 {
@@ -1091,6 +1097,7 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 	early_init_dt_check_for_initrd(node);
 
 	/* Retrieve command line */
+    // IMRT > dt에서 bootargs를 찾는다.
 	p = of_get_flat_dt_prop(node, "bootargs", &l);
 	if (p != NULL && l > 0)
 		strlcpy(data, p, min((int)l, COMMAND_LINE_SIZE));
@@ -1205,7 +1212,7 @@ static void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
 {
 	return memblock_virt_alloc(size, align);
 }
-
+// IMRT > dt 유효한지 확인
 bool __init early_init_dt_verify(void *params)
 {
 	if (!params)

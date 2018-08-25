@@ -184,7 +184,7 @@ static void alloc_init_cont_pte(pmd_t *pmdp, unsigned long addr,
 	} while (addr = next, addr != end);
 }
 
-// IMRT> XXX 2018-08-18 ===============================================
+// IMRT > pmd를 Mapping한다
 static void init_pmd(pud_t *pudp, unsigned long addr, unsigned long end,
 		     phys_addr_t phys, pgprot_t prot,
 		     phys_addr_t (*pgtable_alloc)(void), int flags)
@@ -334,6 +334,7 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
 				 int flags)
 {
 	unsigned long addr, length, end, next;
+    // IMRT > 가상주소에 대한 PGD entry를 반환
 	pgd_t *pgdp = pgd_offset_raw(pgdir, virt);
 
 	/*
@@ -878,6 +879,7 @@ void __set_fixmap(enum fixed_addresses idx,
 void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 {
 	// IMRT> dt_virt_base: fixmap에서 dt를 로딩할 block의 base address
+    // FIX_FDT 는 FDT 의 PAGE 갯수
 	const u64 dt_virt_base = __fix_to_virt(FIX_FDT);
 	int offset;
 	void *dt_virt;
@@ -890,6 +892,7 @@ void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 	 * here if that is indeed the case.
 	 */
 	BUILD_BUG_ON(MIN_FDT_ALIGN < 8);
+    //IMRT > FDT의 물리 주소 영역이 8byte 단위인지 확인
 	if (!dt_phys || dt_phys % MIN_FDT_ALIGN)
 		return NULL;
 
@@ -909,6 +912,7 @@ void *__init __fixmap_remap_fdt(phys_addr_t dt_phys, int *size, pgprot_t prot)
 		     __fix_to_virt(FIX_BTMAP_BEGIN) >> SWAPPER_TABLE_SHIFT);
 
 	// IMRT> dt_phys의 시작위치가 SWAPPER_BLOCK_SIZE와 얼마나 차이가 나는지 저장
+    // SWAPPER_BLOCK init process에서 사용되는 Memory Size
 	offset = dt_phys % SWAPPER_BLOCK_SIZE;
 	// IMRT> dt_virt: 물리 주소와 가상주소의 1:1 매핑을 위한 offset 보정이 적용된 DT의 base 주소
 	dt_virt = (void *)dt_virt_base + offset;

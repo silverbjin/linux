@@ -64,6 +64,7 @@
 #include <asm/xen/hypervisor.h>
 #include <asm/mmu_context.h>
 
+// IMRT > fdt_pointer는 부트로더가 부팅 당시에 넘겨준다.
 phys_addr_t __fdt_pointer __initdata;
 
 /*
