@@ -1059,6 +1059,8 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
 		u64 base, size;
         //IMRT > base는 addr값이 정의되고, size는 size가 정의된다.
+        //IMRT > / 에서는 address-cells , size-cells 가 3 이상인 경우가 없다.
+        //       u64 타입에 __be32 타입을 최대 2개 저장할 수 있다.
 		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
 		size = dt_mem_next_cell(dt_root_size_cells, &reg);
 
@@ -1133,11 +1135,12 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 #ifndef MAX_MEMBLOCK_ADDR
 #define MAX_MEMBLOCK_ADDR	((phys_addr_t)~0)
 #endif
-
+// IMRT >> base ~ base + size 구역이 memblock에 적합한 구역인지 확인후 memblock_add()
 void __init __weak early_init_dt_add_memory_arch(u64 base, u64 size)
 {
+    // IMRT >> MIN_MEMBLOCK_ADDR = 0
 	const u64 phys_offset = MIN_MEMBLOCK_ADDR;
-
+    // IMRT >> size, base 를 page size 단위로 ALIGN
 	if (!PAGE_ALIGNED(base)) {
 		if (size < PAGE_SIZE - (base & ~PAGE_MASK)) {
 			pr_warn("Ignoring memory block 0x%llx - 0x%llx\n",

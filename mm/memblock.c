@@ -468,6 +468,7 @@ static void __init_memblock memblock_merge_regions(struct memblock_type *type)
  * Insert new memblock region [@base,@base+@size) into @type at @idx.
  * @type must already have extra room to accommodate the new region.
  */
+// IMRT >> idx 위치에 새로운 memblock_region 추가(정렬 상태 유지)
 static void __init_memblock memblock_insert_region(struct memblock_type *type,
 						   int idx, phys_addr_t base,
 						   phys_addr_t size,
@@ -513,8 +514,9 @@ int __init_memblock memblock_add_range(struct memblock_type *type,
 
 	if (!size)
 		return 0;
-
+    
 	/* special case for empty array */
+    // IMRT >> 최초 memblock 초기화
 	if (type->regions[0].size == 0) {
 		WARN_ON(type->cnt != 1 || type->total_size);
 		type->regions[0].base = base;
@@ -532,7 +534,7 @@ repeat:
 	 */
 	base = obase;
 	nr_new = 0;
-
+    // IMRT >> 현재 memblock_region 구조체에 메모리 block을 정렬된 상태로 추가
 	for_each_memblock_type(idx, type, rgn) {
 		phys_addr_t rbase = rgn->base;
 		phys_addr_t rend = rbase + rgn->size;
@@ -545,6 +547,8 @@ repeat:
 		 * @rgn overlaps.  If it separates the lower part of new
 		 * area, insert that portion.
 		 */
+        // IMRT >> 기존 region과 겹칠 경우 겹치지 않는 아랫부분을 insert 한다.
+        //           (최초에 하지 않고 repeat시에 insert)
 		if (rbase > base) {
 #ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
 			WARN_ON(nid != memblock_get_region_node(rgn));
@@ -561,6 +565,8 @@ repeat:
 	}
 
 	/* insert the remaining portion */
+    // IMRT >> 기존 region과 겹칠 경우 겹치지 않는 윗부분을 insert 한다.
+    //           (최초에 하지 않고 repeat시에 insert)
 	if (base < end) {
 		nr_new++;
 		if (insert)
@@ -575,8 +581,10 @@ repeat:
 	 * If this was the first round, resize array and repeat for actual
 	 * insertions; otherwise, merge and return.
 	 */
+    // IMRT >> 추가할 block이 max(128) 보다 클경우 array size를 두배로 한다.
 	if (!insert) {
 		while (type->cnt + nr_new > type->max)
+            // IMRT >> xxxxxxxxxxxxxxxxxx2018.09.01xxxxxxxxxxxxxxxxxxxxxxxxx
 			if (memblock_double_array(type, obase, size) < 0)
 				return -ENOMEM;
 		insert = true;
