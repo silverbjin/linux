@@ -121,6 +121,10 @@ static inline void cpu_uninstall_idmap(void)
 	struct mm_struct *mm = current->active_mm;
 
 	cpu_set_reserved_ttbr0();
+	// tlb: 변환 색인 버퍼(Translation Lookaside Buffer, TLB)는 
+	// 		가상 메모리 주소를 물리적인 주소로 변환하는 속도를 높이기 위해 사용되는 캐시
+	//   	(MMU로 가기 전에, 자주 사용하는 것은 이 tlb 캐시를 통해 있으면 tlb에서 가져오자.)
+	// tlb에 있는 것들 모두 비움(flush함).
 	local_flush_tlb_all();
 	cpu_set_default_tcr_t0sz();
 

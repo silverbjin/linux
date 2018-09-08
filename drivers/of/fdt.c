@@ -832,6 +832,7 @@ struct fdt_scan_status {
 	void *data;
 };
 
+// IMRT : "model" 이름을 찾고, 없다면 "compatible"(호환가능한 device 명)을 가져온다.
 const char * __init of_flat_dt_get_machine_name(void)
 {
 	const char *name;
@@ -1175,6 +1176,7 @@ void __init __weak early_init_dt_add_memory_arch(u64 base, u64 size)
 		size -= phys_offset - base;
 		base = phys_offset;
 	}
+	// IMRT : 새로운 memblock_region을 base 주소부터 size만큼 할당한다.
 	memblock_add(base, size);
 }
 

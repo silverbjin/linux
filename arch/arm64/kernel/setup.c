@@ -271,6 +271,7 @@ void __init setup_arch(char **cmdline_p)
 	//	memory memblock에 메모리 등록
 	setup_machine_fdt(__fdt_pointer);
 
+	// IMRT : early options 설정 
 	parse_early_param();
 
 	/*
@@ -278,15 +279,30 @@ void __init setup_arch(char **cmdline_p)
 	 * earlycon. (Report possible System Errors once we can report this
 	 * occurred).
 	 */
+	// asynchronous aborts: error가 어디서 발생했는지 알수없음.
+	// fiq는 irq에 비해 처리를 빠르게 할 목적으로 사용.
+	// error report를 목적으로 async abort와 fiq를 enable함
+	//   D: Debug exceptions mask. (disable)
+	//   A: SError interrupt Process state mask, for example, asynchronous External Abort. (disable)
+	//   I: IRQ interrupt Process state mask. (enable)
+	//   F: FIQ interrupt Process state mask. (disable)
+	// 왜 irq는 enable 상태로 나두는지? --> 해결못함
 	local_daif_restore(DAIF_PROCCTX_NOIRQ);
 
 	/*
 	 * TTBR0 is only used for the identity mapping at this stage. Make it
 	 * point to zero page to avoid speculatively fetching new entries.
 	 */
+	// TTBR0(Translation Table Base Register): user 주소 공간을 위한 페이지 테이블을 가리키는 용도의 register
+	// TTBR1: 커널 주소 공간을 위한 페이지 테이블을 가리키는 용도의 register
+	// identity mapping: virtual addresses == physical addresses, 커널이 사용함.
+	// userspace로 돌아가기 전에, idmap을 uninstall하여 MMU가 사용할 수 있게함.
 	cpu_uninstall_idmap();
 
+	// IMRT : 가상화를 위한 초기화, xen hypervisor dom 관련
 	xen_early_init();
+	// IMRT : EFI를 초기화 함.
+	// 		  EFI 는 확장 펌웨어 인터페이스로 Extensible Firmware Interface
 	efi_init();
 	arm64_memblock_init();
 

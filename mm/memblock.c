@@ -323,6 +323,7 @@ void __init memblock_discard(void)
  * RETURNS:
  * 0 on success, -1 on failure.
  */
+// IMRT : old memblock_region의 size를 2배로 설정
 static int __init_memblock memblock_double_array(struct memblock_type *type,
 						phys_addr_t new_area_start,
 						phys_addr_t new_area_size)
@@ -330,6 +331,7 @@ static int __init_memblock memblock_double_array(struct memblock_type *type,
 	struct memblock_region *new_array, *old_array;
 	phys_addr_t old_alloc_size, new_alloc_size;
 	phys_addr_t old_size, new_size, addr;
+	// IMRT : kernel boot-up 타임시에는 use_slab는 아직 나오지 않았으므로 false가 들어옴 
 	int use_slab = slab_is_available();
 	int *in_slab;
 
@@ -741,6 +743,7 @@ static int __init_memblock memblock_setclr_flag(phys_addr_t base,
 	struct memblock_type *type = &memblock.memory;
 	int i, ret, start_rgn, end_rgn;
 
+	// base, size를 이용해서 set/clear할 구역(start_rgn~end_rgn) 을 가져온다.
 	ret = memblock_isolate_range(type, base, size, &start_rgn, &end_rgn);
 	if (ret)
 		return ret;
