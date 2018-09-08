@@ -443,6 +443,8 @@ static int __init do_early_param(char *param, char *val,
 {
 	const struct obs_kernel_param *p;
 
+	// IMRT : 미리 등록된(컴파일 타임에 .init.setup이란 section에 정의된) 
+	// obs_kernel_param의 리스트 중, early options(console, earlycon)을 찾는다.
 	for (p = __setup_start; p < __setup_end; p++) {
 		if ((p->early && parameq(param, p->str)) ||
 		    (strcmp(param, "console") == 0 &&

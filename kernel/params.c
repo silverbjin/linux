@@ -183,11 +183,17 @@ char *parse_args(const char *doing,
 		int ret;
 		int irq_was_disabled;
 
+		// IMRT : abilis_tb100_dvk.dts 참고함 
+		// param = earlycon
+		// val = uart8250,mmio32,0xff100000,9600n8
+		// param = console
+		// val = ttyS0,9600n8 의 형태로 들어감.
 		args = next_arg(args, &param, &val);
 		/* Stop at -- */
 		if (!val && strcmp(param, "--") == 0)
 			return err ?: args;
 		irq_was_disabled = irqs_disabled();
+		// IMRT : parse_one()안에서 return handle_unknown에서 do_early_param이 실행된다.
 		ret = parse_one(param, val, doing, params, num,
 				min_level, max_level, arg, unknown);
 		if (irq_was_disabled && !irqs_disabled())
