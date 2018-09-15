@@ -88,6 +88,7 @@ early_param("initrd", early_initrd);
  * line parameter. The memory reserved is used by dump capture kernel when
  * primary kernel is crashing.
  */
+// IMRT > boot_command_line에 crash kernel이 있을때 memblock reserved 영역을 추가.
 static void __init reserve_crashkernel(void)
 {
 	unsigned long long crash_base, crash_size;
@@ -194,6 +195,7 @@ static int __init early_init_dt_scan_elfcorehdr(unsigned long node,
  * information about primary kernel's core image and is used by a dump
  * capture kernel to access the system memory on primary kernel.
  */
+// IMRT > kernel elfheader의 정보들을 저장하기 위한 memblock reserved 영역 지정
 static void __init reserve_elfcorehdr(void)
 {
 	of_scan_flat_dt(early_init_dt_scan_elfcorehdr, NULL);
@@ -466,7 +468,7 @@ void __init arm64_memblock_init(void)
 		initrd_end = __phys_to_virt(initrd_end);
 	}
 #endif
-
+// IMRT > FDT에서 reserved가 필요한 영역을 memblock reserved 영역에 추가
 	early_init_fdt_scan_reserved_mem();
 
 	/* 4GB maximum for 32-bit only capable devices */

@@ -667,13 +667,14 @@ void __init early_init_fdt_scan_reserved_mem(void)
 		return;
 
 	/* Process header /memreserve/ fields */
+    //IMRT > DTB 헤더에 off_mem_rsvmap_field가 가르키는 reserved 영역들을 추가.
 	for (n = 0; ; n++) {
 		fdt_get_mem_rsv(initial_boot_params, n, &base, &size);
 		if (!size)
 			break;
 		early_init_dt_reserve_memory_arch(base, size, 0);
 	}
-
+// IMRT > DTB reserved-mem node 영역이 요청하는 영역들을 추가.
 	of_scan_flat_dt(__fdt_scan_reserved_mem, NULL);
 	fdt_init_reserved_mem();
 }
