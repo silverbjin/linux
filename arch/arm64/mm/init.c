@@ -329,7 +329,7 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
-// IMRT > linux,usable-memory-range°¡ ÀÖÀ¸¸é memory dump¸¦ »ç¿ëÇÏ±â À§ÇÑ ¼³Á¤.
+// IMRT > linux,usable-memory-rangeê°€ ìˆìœ¼ë©´ memory dumpë¥¼ ì‚¬ìš©í•˜ê¸° ìœ„í•œ ì„¤ì •.
 static int __init early_init_dt_scan_usablemem(unsigned long node,
 		const char *uname, int depth, void *data)
 {
@@ -340,7 +340,7 @@ static int __init early_init_dt_scan_usablemem(unsigned long node,
 	if (depth != 1 || strcmp(uname, "chosen") != 0)
 		return 0;
 
-        // IMRT > Ä¿³Î¿¡¼­ »ç¿ëÇÒ ¼ö ÀÖ´Â Á¦ÇÑµÈ ¿µ¿ªÀ» ¼³¸íÇÏ´Â ±âº» ÁÖ¼Ò¿Í Å©±â¸¦ ¼³¸íÇÕ´Ï´Ù.
+        // IMRT > ì»¤ë„ì—ì„œ ì‚¬ìš©í•  ìˆ˜ ìˆëŠ” ì œí•œëœ ì˜ì—­ì„ ì„¤ëª…í•˜ëŠ” ê¸°ë³¸ ì£¼ì†Œì™€ í¬ê¸°ë¥¼ ì„¤ëª…í•©ë‹ˆë‹¤.
 	reg = of_get_flat_dt_prop(node, "linux,usable-memory-range", &len);
 	if (!reg || (len < (dt_root_addr_cells + dt_root_size_cells)))
 		return 1;
@@ -363,8 +363,8 @@ static void __init fdt_enforce_memory_region(void)
 		memblock_cap_memory_range(reg.base, reg.size);
 }
 
-// IMRT > reserved ¿µ¿ªÀÇ ¿£Æ®¸® µî·Ï.: kernel, initrd, page table¿µ¿ª
-// DTB¿µ¿ª ¹× DTB ¿äÃ» ¿µ¿ª, CMA-DMA¿µ¿ª
+// IMRT > reserved ì˜ì—­ì˜ ì—”íŠ¸ë¦¬ ë“±ë¡.: kernel, initrd, page tableì˜ì—­
+// DTBì˜ì—­ ë° DTB ìš”ì²­ ì˜ì—­, CMA-DMAì˜ì—­
 void __init arm64_memblock_init(void)
 {
 	const s64 linear_region_size = -(s64)PAGE_OFFSET;
@@ -373,7 +373,7 @@ void __init arm64_memblock_init(void)
 	fdt_enforce_memory_region();
 
 	/* Remove memory above our supported physical address size */
-        // IMRT > Áö¿øÇÏ´Â ¹°¸®Àû ¸Ş¸ğ¸® ÁÖ¼Ò Å©±âº¸´Ù Å« ¸Ş¸ğ¸®(memblock.memory) Á¦°Å.
+        // IMRT > ì§€ì›í•˜ëŠ” ë¬¼ë¦¬ì  ë©”ëª¨ë¦¬ ì£¼ì†Œ í¬ê¸°ë³´ë‹¤ í° ë©”ëª¨ë¦¬(memblock.memory) ì œê±°.
 	memblock_remove(1ULL << PHYS_MASK_SHIFT, ULLONG_MAX);
 
 	/*
@@ -386,7 +386,7 @@ void __init arm64_memblock_init(void)
 	/*
 	 * Select a suitable value for the base of physical memory.
 	 */
-        // IMRT > memstart_addrÀÇ ½ÃÀÛ ÁÖ¼Ò¸¦ align ½ÃÅ´.
+        // IMRT > memstart_addrì˜ ì‹œì‘ ì£¼ì†Œë¥¼ align ì‹œí‚´.
 	memstart_addr = round_down(memblock_start_of_DRAM(),
 				   ARM64_MEMSTART_ALIGN);
 
@@ -395,12 +395,12 @@ void __init arm64_memblock_init(void)
 	 * linear mapping. Take care not to clip the kernel which may be
 	 * high in memory.
 	 */
-        // IMRT > startºÎÅÍ linear_region ¹üÀ§¸¦ ¹ş¾î³ª´Â ºÎºĞÀÇ Å©±â¸¦ ¹ş¾î³²)À» Á¦°Å.
+        // IMRT > startë¶€í„° linear_region ë²”ìœ„ë¥¼ ë²—ì–´ë‚˜ëŠ” ë¶€ë¶„ì˜ í¬ê¸°ë¥¼ ë²—ì–´ë‚¨)ì„ ì œê±°.
 	memblock_remove(max_t(u64, memstart_addr + linear_region_size,
 			__pa_symbol(_end)), ULLONG_MAX);
 	if (memstart_addr + linear_region_size < memblock_end_of_DRAM()) {
 		/* ensure that memstart_addr remains sufficiently aligned */
-                // IMRT > memstart_addrº¸´Ù ÀÛÀº ÁÖ¼Ò ¿µ¿ªÀ» Á¦°Å.
+                // IMRT > memstart_addrë³´ë‹¤ ì‘ì€ ì£¼ì†Œ ì˜ì—­ì„ ì œê±°.
 		memstart_addr = round_up(memblock_end_of_DRAM() - linear_region_size,
 					 ARM64_MEMSTART_ALIGN);
 		memblock_remove(0, memstart_addr);
@@ -411,7 +411,7 @@ void __init arm64_memblock_init(void)
 	 * high up in memory, add back the kernel region that must be accessible
 	 * via the linear mapping.
 	 */
-        // IMRT > memory limit°¡ ÀÖÀ¸¸é ±× ºÎºĞÀ» ´Ù½Ã Àß¶ó³¿. 
+        // IMRT > memory limitê°€ ìˆìœ¼ë©´ ê·¸ ë¶€ë¶„ì„ ë‹¤ì‹œ ì˜ë¼ëƒ„. 
 	if (memory_limit != (phys_addr_t)ULLONG_MAX) {
 		memblock_mem_limit_remove_map(memory_limit);
 		memblock_add(__pa_symbol(_text), (u64)(_end - _text));
@@ -440,14 +440,14 @@ void __init arm64_memblock_init(void)
 			"initrd not fully accessible via the linear mapping -- please check your bootloader ...\n")) {
 			initrd_start = 0;
 		} else {
-                        // IMRT > initrd ¹üÀ§¸¸Å­ memblock_reserved ¿µ¿ª¿¡ Ãß°¡.
+                        // IMRT > initrd ë²”ìœ„ë§Œí¼ memblock_reserved ì˜ì—­ì— ì¶”ê°€.
 			memblock_remove(base, size); /* clear MEMBLOCK_ flags */
 			memblock_add(base, size);
 			memblock_reserve(base, size);
 		}
 	}
 
-        // IMRT > CONFIG_RANDOMIZE_BASE : º¸¾È ¸ñÀûÀ¸·Î Ä¿³Î ½ÃÀÛ ÁÖ¼Ò¸¦ ·£´ıÇÏ°Ô ÇÑ´Ù.
+        // IMRT > CONFIG_RANDOMIZE_BASE : ë³´ì•ˆ ëª©ì ìœ¼ë¡œ ì»¤ë„ ì‹œì‘ ì£¼ì†Œë¥¼ ëœë¤í•˜ê²Œ í•œë‹¤.
 	if (IS_ENABLED(CONFIG_RANDOMIZE_BASE)) {
 		extern u16 memstart_offset_seed;
 		u64 range = linear_region_size -
@@ -469,11 +469,11 @@ void __init arm64_memblock_init(void)
 	 * Register the kernel text, kernel data, initrd, and initial
 	 * pagetables with memblock.
 	 */
-        // IMRT > Ä¿³Î ¿µ¿ªÀ» reserve ÇÑ´Ù.
+        // IMRT > ì»¤ë„ ì˜ì—­ì„ reserve í•œë‹¤.
 	memblock_reserve(__pa_symbol(_text), _end - _text);
 #ifdef CONFIG_BLK_DEV_INITRD
 	if (initrd_start) {
-                // IMRT > INITRD°¡ enabled ÀÎÁö disabled »ó°ü ¾øÀÌ reserved
+                // IMRT > INITRDê°€ enabled ì¸ì§€ disabled ìƒê´€ ì—†ì´ reserved
 		memblock_reserve(initrd_start, initrd_end - initrd_start);
 
 		/* the generic initrd code expects virtual addresses */
@@ -481,7 +481,7 @@ void __init arm64_memblock_init(void)
 		initrd_end = __phys_to_virt(initrd_end);
 	}
 #endif
-// IMRT > FDTì—ì„œ reservedê°€ í•„ìš”í•œ ì˜ì—­ì„ memblock reserved ì˜ì—­ì— ì¶”ê°€
+        // IMRT > FDTì—ì„œ reservedê°€ í•„ìš”í•œ ì˜ì—­ì„ memblock reserved ì˜ì—­ì— ì¶”ê°€
 	early_init_fdt_scan_reserved_mem();
 
 	/* 4GB maximum for 32-bit only capable devices */
