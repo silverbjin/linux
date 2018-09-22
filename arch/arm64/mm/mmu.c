@@ -77,11 +77,13 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 }
 EXPORT_SYMBOL(phys_mem_access_prot);
 
+// IMRT(TOT0Ro) > 아직 사용하지 않는 PTE 테이블을 이용해 한 페이지 크기의 물리 주소 영역을 0으로 초기화.
 static phys_addr_t __init early_pgtable_alloc(void)
 {
 	phys_addr_t phys;
 	void *ptr;
 
+        // IMRT(TOT0Ro) > memblock으로부터 페이지크기를 할당 받음.
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
 
 	/*
@@ -89,14 +91,18 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	 * slot will be free, so we can (ab)use the FIX_PTE slot to initialise
 	 * any level of table.
 	 */
+        // IMRT(TOT0Ro) > phys에 임시로 fixmap 테이블을 하나 매핑..
 	ptr = pte_set_fixmap(phys);
 
+        // IMRT(TOT0Ro) > fixmap을 이용해 phys 공간을 0으로 초기화
 	memset(ptr, 0, PAGE_SIZE);
 
 	/*
 	 * Implicit barriers also ensure the zeroed page is visible to the page
 	 * table walker
 	 */
+        // IMRT(TOT0Ro) > inx가 PTE이고 phys 가 0, flag가 0를 인자로 __set_fixmap() 호출
+        // fixmap 매핑 해제(pte 테이블)
 	pte_clear_fixmap();
 
 	return phys;
@@ -450,8 +456,12 @@ static void __init map_mem(pgd_t *pgdp)
 	 * So temporarily mark them as NOMAP to skip mappings in
 	 * the following for-loop
 	 */
+        // IMRT(TOT0Ro) > kernel 영역을 mapping하지 않도록 함.
+        // memblock_isolate_region()으로 kernel 영역만 도려낸 후 해당 region flag 설정한 후 병합.
 	memblock_mark_nomap(kernel_start, kernel_end - kernel_start);
+
 	// IMRT> 현재 돌아가는 커널에 새로운 커널을 부팅하게 하는 리눅스 커널의 메커니즘
+        // IMRT(TOT0Ro) > 부팅 완료한 커널에 다른 커널로 교체. 부트로더 등을 거치지 않음.
 	// https://ko.wikipedia.org/wiki/Kexec
 #ifdef CONFIG_KEXEC_CORE
 	if (crashk_res.end)
@@ -461,6 +471,7 @@ static void __init map_mem(pgd_t *pgdp)
 
 	/* map all the memory banks */
 	// IMRT> kernel image가 아닌 부분을 fixmap의  PGD, PUD, PMD 매핑
+        // IMRT(TOT0Ro) > PUD는 PUD_none() 함수로 인해 건너 뛰는 듯 싶다.
 	for_each_memblock(memory, reg) {
 		phys_addr_t start = reg->base;
 		phys_addr_t end = start + reg->size;
@@ -487,6 +498,7 @@ static void __init map_mem(pgd_t *pgdp)
 	__map_memblock(pgdp, kernel_start, kernel_end,
 		       PAGE_KERNEL, NO_CONT_MAPPINGS);
 	// IMRT> kernel 영역에 설정해 두었던 nomap flag를 해제한다.
+        // IMRT(TOT0Ro) > nomap 설정 때와 마찬가지로 도려내서 해제하고 병합.
 	memblock_clear_nomap(kernel_start, kernel_end - kernel_start);
 
 #ifdef CONFIG_KEXEC_CORE
@@ -654,8 +666,10 @@ static void __init map_kernel(pgd_t *pgdp)
 void __init paging_init(void)
 {
 	// IMRT> kernel page table로 사용할 영역을 memblock에서 할당
+        // IMRT(TOT0Ro) > 사용하지 않는 pte를 이용해 0으로 초기화 
 	phys_addr_t pgd_phys = early_pgtable_alloc();
 	// IMRT> memblock에서 할당받은 메모리 영역을 fixmap의 pgd에 셋팅
+        // IMRT(TOT0Ro) > 매핑.
 	pgd_t *pgdp = pgd_set_fixmap(pgd_phys);
 
 	// IMRT> fixmap pgd에 kernel image의 섹션단위로 매핑한다.
@@ -889,6 +903,7 @@ void __set_fixmap(enum fixed_addresses idx,
 
 	ptep = fixmap_pte(addr);
 
+        // IMRT(TOT0Ro) > fixmap clear를 호출하게 되면 else 타게 됨. phys와 flags가 0임.
 	if (pgprot_val(flags)) {
 		set_pte(ptep, pfn_pte(phys >> PAGE_SHIFT, flags));
 	} else {
