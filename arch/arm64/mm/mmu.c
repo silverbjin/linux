@@ -82,6 +82,8 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	phys_addr_t phys;
 	void *ptr;
 
+        // TOT0Ro > memblock으로 부터 페이지를 할당 받음.
+        // 용도는 커널 페이지 테이블
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
 
 	/*
@@ -89,14 +91,18 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	 * slot will be free, so we can (ab)use the FIX_PTE slot to initialise
 	 * any level of table.
 	 */
+        // TOT0Ro > phys에 임시로 테이블을 하나 매핑..
 	ptr = pte_set_fixmap(phys);
 
+        // TOT0Ro > 테이블을 0으로 초기화
 	memset(ptr, 0, PAGE_SIZE);
 
 	/*
 	 * Implicit barriers also ensure the zeroed page is visible to the page
 	 * table walker
 	 */
+        // TOT0Ro > inx가 PTE이고 phys 가 0, flag가 0를 인자로 __set_fixmap() 호출
+        // 테이블을 매핑 해제.
 	pte_clear_fixmap();
 
 	return phys;
@@ -637,7 +643,9 @@ static void __init map_kernel(pgd_t *pgdp)
  */
 void __init paging_init(void)
 {
+        // TOT0Ro > 사용하지 않는 pte를 이용해 물리적인 커널 페이지를 0으로 초기화 
 	phys_addr_t pgd_phys = early_pgtable_alloc();
+        // TOT0Ro > 위에서 초기화한 물리 주소에 pgd 테이블을 매핑.
 	pgd_t *pgdp = pgd_set_fixmap(pgd_phys);
 
 	map_kernel(pgdp);
@@ -868,6 +876,7 @@ void __set_fixmap(enum fixed_addresses idx,
 
 	ptep = fixmap_pte(addr);
 
+        // TOT0Ro > fixmap clear를 호출하게 되면 else 타게 됨. phys와 flags가 0임.
 	if (pgprot_val(flags)) {
 		set_pte(ptep, pfn_pte(phys >> PAGE_SHIFT, flags));
 	} else {
