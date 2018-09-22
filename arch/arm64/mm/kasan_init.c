@@ -157,6 +157,7 @@ void __init kasan_copy_shadow(pgd_t *pgdir)
 {
 	pgd_t *pgdp, *pgdp_new, *pgdp_end;
 
+	// IMRT> KASAN_SHADOW_START == VA_START(the first kernel virtual address)
 	pgdp = pgd_offset_k(KASAN_SHADOW_START);
 	pgdp_end = pgd_offset_k(KASAN_SHADOW_END);
 	pgdp_new = pgd_offset_raw(pgdir, KASAN_SHADOW_START);
