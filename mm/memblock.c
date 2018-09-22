@@ -114,9 +114,13 @@ __memblock_find_range_bottom_up(phys_addr_t start, phys_addr_t end,
 	u64 i;
 
 	for_each_free_mem_range(i, nid, flags, &this_start, &this_end, NULL) {
+                // IMRT(TOT0Ro) > start와 end를 벗어나지 않음 && free 영역(this)의
+                // start와 end 설정.
 		this_start = clamp(this_start, start, end);
 		this_end = clamp(this_end, start, end);
 
+                // IMRT(TOT0Ro) > free 영역에 align 적용시킨 공간의 size가
+                // 필요한 size에 충족한다면 해당 영역의 시작 주소를 return(align 된)
 		cand = round_up(this_start, align);
 		if (cand < this_end && this_end - cand >= size)
 			return cand;
@@ -192,12 +196,20 @@ phys_addr_t __init_memblock memblock_find_in_range_node(phys_addr_t size,
 	phys_addr_t kernel_end, ret;
 
 	/* pump up @end */
+        // IMRT(TOT0Ro) > MEMBLOCK_ALLOC_ACCESSIBLE == 0
+        // current_limit == MEMBLOCK_ALLOC_ANYWHERE == ~(phys_addr_t)0 == 0xFFFFFFFF_FFFFFFFF
 	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
 		end = memblock.current_limit;
 
 	/* avoid allocating the first page */
+        // IMRT(TOT0Ro) > phys_addr_t 형의 변수를 만들어
+        // start와 PAGE_SIZE 값을 넣어 값을 비교한 후 큰 값을 반환.
 	start = max_t(phys_addr_t, start, PAGE_SIZE);
+        // IMRT(TOT0Ro) > max_t와 근본적으로 같으나 max_t의 첫번째 인자 처럼
+        // 자료형을 명시해 주는 것이 아닌 인자로 들어오는 두 타입 각각 typeof 매크로를 이용해서
+        // 해당 자료형을 이용.
 	end = max(start, end);
+        // IMRT(TOT0Ro) > kernel end의 phys addr
 	kernel_end = __pa_symbol(_end);
 
 	/*
@@ -208,9 +220,12 @@ phys_addr_t __init_memblock memblock_find_in_range_node(phys_addr_t size,
 		phys_addr_t bottom_up_start;
 
 		/* make sure we will allocate above the kernel */
+                // IMRT(TOT0Ro) > 
 		bottom_up_start = max(start, kernel_end);
 
 		/* ok, try bottom-up allocation first */
+                // IMRT(TOT0Ro) > 아래에서 위로 free 영역(memory에 속하지만 reserved에 속하지 않은 영역)
+                // 을 차례로 훑으면서 size 만큼의 공간이 들어갈 수 있는 free 영역을 반환.
 		ret = __memblock_find_range_bottom_up(bottom_up_start, end,
 						      size, align, nid, flags);
 		if (ret)
@@ -229,6 +244,11 @@ phys_addr_t __init_memblock memblock_find_in_range_node(phys_addr_t size,
 		WARN_ONCE(1, "memblock: bottom-up allocation failed, memory hotunplug may be affected\n");
 	}
 
+        // IMRT(TOT0Ro) > 위에서 아래로 한다는 것 만 다르고 __memblock_find_range_bottom_up()과 완전히 동일.
+        // bottom_up 함수에 주석 달아 놓음.
+        // memory hotplug 기능이 지원하지 않는 경우에 top_down 함수를 호출하며, ARM 아키텍처는 현재(커널 v4.4)까지
+        // CPU hotplug 기능과는 달리 메모리 hotplug 기능이 적용되지 않았다. 따라서 메모리 할당은 top down 방식 을 사용한다.
+        // (by Moon.C) 라고 한다. 나는 바보였다.
 	return __memblock_find_range_top_down(start, end, size, align, nid,
 					      flags);
 }
@@ -878,6 +898,7 @@ void __init_memblock __next_reserved_mem_region(u64 *idx,
  * As both region arrays are sorted, the function advances the two indices
  * in lockstep and returns each intersection.
  */
+// IMRT(TOT0Ro) > free 영역을 찾아서 out_start와 out_end에 그 영역을 설정.
 void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 				      struct memblock_type *type_a,
 				      struct memblock_type *type_b,
@@ -914,6 +935,8 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 		if (!(flags & MEMBLOCK_NOMAP) && memblock_is_nomap(m))
 			continue;
 
+                // IMRT(TOT0Ro) > next memory 영역으로 왔는데 남은 reserved 영역이 없다?
+                // 이 memory 영역은 모두 free 영역이다.
 		if (!type_b) {
 			if (out_start)
 				*out_start = m_start;
@@ -921,6 +944,7 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 				*out_end = m_end;
 			if (out_nid)
 				*out_nid = m_nid;
+                        // 다음 reserved 영역은 없으므로 다음 memory 영역만 보면 됨.
 			idx_a++;
 			*idx = (u32)idx_a | (u64)idx_b << 32;
 			return;
@@ -933,7 +957,13 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 			phys_addr_t r_end;
 
 			r = &type_b->regions[idx_b];
+                        // IMRT(TOT0Ro) > reserved 영역의 start와 end가 아닌
+                        // @@@ free 영역의 start와 end를 설정 하는 것. @@@
+                        // IMRT(TOT0Ro) > idx_b가 0이면 0을 start로 설정.
+                        // 그 외에는 이전 region의 end를 start로 설정.
 			r_start = idx_b ? r[-1].base + r[-1].size : 0;
+                        // IMRT(TOT0Ro) > idx_b가 region 갯수보다 크면 최댓값을 설정.
+                        // 그 외에는 현재 region의 base를 end로 설정.
 			r_end = idx_b < type_b->cnt ?
 				r->base : ULLONG_MAX;
 
@@ -941,9 +971,13 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 			 * if idx_b advanced past idx_a,
 			 * break out to advance idx_a
 			 */
+                        // IMRT(TOT0Ro) > free 영역이 memory 영역에서 벗어난 상태.
+                        // 다음 memory 영역을 참조하도록 for문 탈출.
 			if (r_start >= m_end)
 				break;
 			/* if the two regions intersect, we're done */
+                        // IMRT(TOT0Ro) > free 영역이 memory 영역에 겹친 상태.
+                        // 겹쳐진 부분. 즉, free 영역을 설정.
 			if (m_start < r_end) {
 				if (out_start)
 					*out_start =
@@ -956,6 +990,7 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 				 * The region which ends first is
 				 * advanced for the next iteration.
 				 */
+                                // IMRT(TOT0Ro) > 다음 idx 설정. 
 				if (m_end <= r_end)
 					idx_a++;
 				else
@@ -966,6 +1001,8 @@ void __init_memblock __next_mem_range(u64 *idx, int nid, ulong flags,
 		}
 	}
 
+        // IMRT(TOT0Ro) > 현재 idx에 해당하는 memblock.type이 memory인 영역이 더이상 없음.
+        // 모든 영역을 다 참조 한 것. for each문을 탈출 하기 위해 명시함.
 	/* signal end of iteration */
 	*idx = ULLONG_MAX;
 }
@@ -1152,6 +1189,7 @@ static phys_addr_t __init memblock_alloc_range_nid(phys_addr_t size,
 	if (!align)
 		align = SMP_CACHE_BYTES;
 
+        // IMRT(TOT0Ro) > free한 영역 find
 	found = memblock_find_in_range_node(size, align, start, end, nid,
 					    flags);
 	if (found && !memblock_reserve(found, size)) {

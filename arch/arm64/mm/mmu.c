@@ -77,13 +77,13 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 }
 EXPORT_SYMBOL(phys_mem_access_prot);
 
+// IMRT(TOT0Ro) > 아직 사용하지 않는 PTE 테이블을 이용해 한 페이지 크기의 물리 주소 영역을 0으로 초기화.
 static phys_addr_t __init early_pgtable_alloc(void)
 {
 	phys_addr_t phys;
 	void *ptr;
 
-        // TOT0Ro > memblock으로 부터 페이지를 할당 받음.
-        // 용도는 커널 페이지 테이블
+        // IMRT(TOT0Ro) > memblock으로부터 페이지크기를 할당 받음.
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
 
 	/*
@@ -91,18 +91,18 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	 * slot will be free, so we can (ab)use the FIX_PTE slot to initialise
 	 * any level of table.
 	 */
-        // TOT0Ro > phys에 임시로 테이블을 하나 매핑..
+        // IMRT(TOT0Ro) > phys에 임시로 fixmap 테이블을 하나 매핑..
 	ptr = pte_set_fixmap(phys);
 
-        // TOT0Ro > 테이블을 0으로 초기화
+        // IMRT(TOT0Ro) > fixmap을 이용해 phys 공간을 0으로 초기화
 	memset(ptr, 0, PAGE_SIZE);
 
 	/*
 	 * Implicit barriers also ensure the zeroed page is visible to the page
 	 * table walker
 	 */
-        // TOT0Ro > inx가 PTE이고 phys 가 0, flag가 0를 인자로 __set_fixmap() 호출
-        // 테이블을 매핑 해제.
+        // IMRT(TOT0Ro) > inx가 PTE이고 phys 가 0, flag가 0를 인자로 __set_fixmap() 호출
+        // fixmap 매핑 해제(pte 테이블)
 	pte_clear_fixmap();
 
 	return phys;
@@ -456,7 +456,13 @@ static void __init map_mem(pgd_t *pgdp)
 	 * So temporarily mark them as NOMAP to skip mappings in
 	 * the following for-loop
 	 */
+        // IMRT(TOT0Ro) > kernel 영역을 mapping하지 않도록 함.
+        // memblock_isolate_region()으로 kernel 영역만 도려낸 후 해당 region flag 설정한 후 병합.
 	memblock_mark_nomap(kernel_start, kernel_end - kernel_start);
+
+	// IMRT> 현재 돌아가는 커널에 새로운 커널을 부팅하게 하는 리눅스 커널의 메커니즘
+        // IMRT(TOT0Ro) > 부팅 완료한 커널에 다른 커널로 교체. 부트로더 등을 거치지 않음.
+	// https://ko.wikipedia.org/wiki/Kexec
 #ifdef CONFIG_KEXEC_CORE
 	if (crashk_res.end)
 		memblock_mark_nomap(crashk_res.start,
@@ -464,6 +470,8 @@ static void __init map_mem(pgd_t *pgdp)
 #endif
 
 	/* map all the memory banks */
+	// IMRT> kernel image가 아닌 부분을 fixmap의  PGD, PUD, PMD 매핑
+        // IMRT(TOT0Ro) > PUD는 PUD_none() 함수로 인해 건너 뛰는 듯 싶다.
 	for_each_memblock(memory, reg) {
 		phys_addr_t start = reg->base;
 		phys_addr_t end = start + reg->size;
@@ -486,8 +494,11 @@ static void __init map_mem(pgd_t *pgdp)
 	 * Note that contiguous mappings cannot be remapped in this way,
 	 * so we should avoid them here.
 	 */
+	// IMRT> Kernel image 부분을 통채로 pgd에 매핑한다. PGD, PUD, PMD 매핑
 	__map_memblock(pgdp, kernel_start, kernel_end,
 		       PAGE_KERNEL, NO_CONT_MAPPINGS);
+	// IMRT> kernel 영역에 설정해 두었던 nomap flag를 해제한다.
+        // IMRT(TOT0Ro) > nomap 설정 때와 마찬가지로 도려내서 해제하고 병합.
 	memblock_clear_nomap(kernel_start, kernel_end - kernel_start);
 
 #ifdef CONFIG_KEXEC_CORE
@@ -531,6 +542,7 @@ static void __init map_kernel_segment(pgd_t *pgdp, void *va_start, void *va_end,
 	BUG_ON(!PAGE_ALIGNED(pa_start));
 	BUG_ON(!PAGE_ALIGNED(size));
 
+	// IMRT> fixmap 영역의 pgd에 인수로 전달받은 memory 영역을 매핑
 	__create_pgd_mapping(pgdp, pa_start, (unsigned long)va_start, size, prot,
 			     early_pgtable_alloc, flags);
 
@@ -541,8 +553,10 @@ static void __init map_kernel_segment(pgd_t *pgdp, void *va_start, void *va_end,
 	vma->phys_addr	= pa_start;
 	vma->size	= size;
 	vma->flags	= VM_MAP | vm_flags;
+	// IMRT> mapkernel_segment를 호출한 주소를 caller에 저장한다.(caller에 현재 lr을 저장한다.)
 	vma->caller	= __builtin_return_address(0);
 
+	// IMRT> vmalloc_init()에서 사용할 수 있도록 vma를 vmlist에 추가한다.
 	vm_area_add_early(vma);
 }
 
@@ -594,12 +608,15 @@ static void __init map_kernel(pgd_t *pgdp)
 	 * mapping to install SW breakpoints. Allow this (only) when
 	 * explicitly requested with rodata=off.
 	 */
+	// IMRT> memory 영역의 속성을 지정하는 값 설정
+	// IMRT> rodata_enabled는 외부 디버거에서 text 영역을 쓸 수 있도록 하기위해 설정됨
 	pgprot_t text_prot = rodata_enabled ? PAGE_KERNEL_ROX : PAGE_KERNEL_EXEC;
 
 	/*
 	 * Only rodata will be remapped with different permissions later on,
 	 * all other segments are allowed to use contiguous mappings.
 	 */
+	// IMRT> vmlinux의 elf에 분할된 segment들을 pgdp가 가리키는 영역에 할당한다.
 	map_kernel_segment(pgdp, _text, _etext, text_prot, &vmlinux_text, 0,
 			   VM_NO_GUARD);
 	map_kernel_segment(pgdp, __start_rodata, __inittext_begin, PAGE_KERNEL,
@@ -610,12 +627,15 @@ static void __init map_kernel(pgd_t *pgdp)
 			   &vmlinux_initdata, 0, VM_NO_GUARD);
 	map_kernel_segment(pgdp, _data, _end, PAGE_KERNEL, &vmlinux_data, 0, 0);
 
+	// IMRT> TODO: pgd_val 확인 필요
+	// pgd_offset_raw(pgdp에서 FIXADDR_START만큼의 offset을 이동해서 해당 위치의 값을 확인함.
 	if (!READ_ONCE(pgd_val(*pgd_offset_raw(pgdp, FIXADDR_START)))) {
 		/*
 		 * The fixmap falls in a separate pgd to the kernel, and doesn't
 		 * live in the carveout for the swapper_pg_dir. We can simply
 		 * re-use the existing dir for the fixmap.
 		 */
+		// IMRT> pgd_val이설정되지 않았다면 FIXADD_START값으로 pgdp 설정 
 		set_pgd(pgd_offset_raw(pgdp, FIXADDR_START),
 			READ_ONCE(*pgd_offset_k(FIXADDR_START)));
 	} else if (CONFIG_PGTABLE_LEVELS > 3) {
@@ -634,6 +654,8 @@ static void __init map_kernel(pgd_t *pgdp)
 		BUG();
 	}
 
+	// IMRT> KASAN is a dynamic memory error detector.
+	// (KASAN): KernelAddressSANitizer
 	kasan_copy_shadow(pgdp);
 }
 
@@ -643,12 +665,16 @@ static void __init map_kernel(pgd_t *pgdp)
  */
 void __init paging_init(void)
 {
-        // TOT0Ro > 사용하지 않는 pte를 이용해 물리적인 커널 페이지를 0으로 초기화 
+	// IMRT> kernel page table로 사용할 영역을 memblock에서 할당
+        // IMRT(TOT0Ro) > 사용하지 않는 pte를 이용해 0으로 초기화 
 	phys_addr_t pgd_phys = early_pgtable_alloc();
-        // TOT0Ro > 위에서 초기화한 물리 주소에 pgd 테이블을 매핑.
+	// IMRT> memblock에서 할당받은 메모리 영역을 fixmap의 pgd에 셋팅
+        // IMRT(TOT0Ro) > 매핑.
 	pgd_t *pgdp = pgd_set_fixmap(pgd_phys);
 
+	// IMRT> fixmap pgd에 kernel image의 섹션단위로 매핑한다.
 	map_kernel(pgdp);
+	// IMRT> memblock에 할당한 메모리 영역을 pgd에 매핑한다.
 	map_mem(pgdp);
 
 	/*
@@ -659,6 +685,7 @@ void __init paging_init(void)
 	 *
 	 * To do this we need to go via a temporary pgd.
 	 */
+	// IMRT> TODO 9/29
 	cpu_replace_ttbr1(__va(pgd_phys));
 	memcpy(swapper_pg_dir, pgdp, PGD_SIZE);
 	cpu_replace_ttbr1(lm_alias(swapper_pg_dir));
@@ -876,7 +903,7 @@ void __set_fixmap(enum fixed_addresses idx,
 
 	ptep = fixmap_pte(addr);
 
-        // TOT0Ro > fixmap clear를 호출하게 되면 else 타게 됨. phys와 flags가 0임.
+        // IMRT(TOT0Ro) > fixmap clear를 호출하게 되면 else 타게 됨. phys와 flags가 0임.
 	if (pgprot_val(flags)) {
 		set_pte(ptep, pfn_pte(phys >> PAGE_SHIFT, flags));
 	} else {

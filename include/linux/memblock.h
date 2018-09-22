@@ -124,6 +124,7 @@ void __memblock_free_late(phys_addr_t base, phys_addr_t size);
  * @p_end: ptr to phys_addr_t for end address of the range, can be %NULL
  * @p_nid: ptr to int for nid of the range, can be %NULL
  */
+// IMRT(TOT0Ro) > memblock의 free 영역을 계속 가르키는 for each문.
 #define for_each_mem_range(i, type_a, type_b, nid, flags,		\
 			   p_start, p_end, p_nid)			\
 	for (i = 0, __next_mem_range(&i, nid, flags, type_a, type_b,	\
@@ -215,6 +216,7 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
  * Walks over free (memory && !reserved) areas of memblock.  Available as
  * soon as memblock is initialized.
  */
+// IMRT(TOT0Ro) > memblock의 free영역에 대한 foreach
 #define for_each_free_mem_range(i, nid, flags, p_start, p_end, p_nid)	\
 	for_each_mem_range(i, &memblock.memory, &memblock.reserved,	\
 			   nid, flags, p_start, p_end, p_nid)
