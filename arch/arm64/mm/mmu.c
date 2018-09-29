@@ -77,11 +77,13 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 }
 EXPORT_SYMBOL(phys_mem_access_prot);
 
+//IMRT> 페이지 테이블 용도로 사용할 싱글 페이지를 할당하여 0으로 초기화 후 물리 주소 리턴
 static phys_addr_t __init early_pgtable_alloc(void)
 {
 	phys_addr_t phys;
 	void *ptr;
 
+	//IMRT> memblock에서 하나의 페이지의 물리주소를 할당받는다
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
 
 	/*
@@ -89,14 +91,17 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	 * slot will be free, so we can (ab)use the FIX_PTE slot to initialise
 	 * any level of table.
 	 */
+	// IMRT> fixmap의 FIX_PTE 주소에 해당 페이지 물리주소를 매핑
 	ptr = pte_set_fixmap(phys);
 
+	// IMRT> FIX_PTE가 가리키는 물리주소를 o으로 set
 	memset(ptr, 0, PAGE_SIZE);
 
 	/*
 	 * Implicit barriers also ensure the zeroed page is visible to the page
 	 * table walker
 	 */
+	// IMRT> FIX_PTE를 clear
 	pte_clear_fixmap();
 
 	return phys;
@@ -434,6 +439,7 @@ void __init mark_linear_text_alias_ro(void)
 			    PAGE_KERNEL_RO);
 }
 
+// IMRT> memblock의 memory 영역의 region전체를 pgd에 매핑한다
 static void __init map_mem(pgd_t *pgdp)
 {
 	phys_addr_t kernel_start = __pa_symbol(_text);
@@ -450,6 +456,7 @@ static void __init map_mem(pgd_t *pgdp)
 	 * So temporarily mark them as NOMAP to skip mappings in
 	 * the following for-loop
 	 */
+	// IMRT> kernel 영역을 nomap으로 설정한다.
 	memblock_mark_nomap(kernel_start, kernel_end - kernel_start);
 	// IMRT> 현재 돌아가는 커널에 새로운 커널을 부팅하게 하는 리눅스 커널의 메커니즘
 	// https://ko.wikipedia.org/wiki/Kexec
@@ -460,7 +467,7 @@ static void __init map_mem(pgd_t *pgdp)
 #endif
 
 	/* map all the memory banks */
-	// IMRT> kernel image가 아닌 부분을 fixmap의  PGD, PUD, PMD 매핑
+	// IMRT> kernel 영역이 아닌 memblock memory type region을 pgd에 매핑
 	for_each_memblock(memory, reg) {
 		phys_addr_t start = reg->base;
 		phys_addr_t end = start + reg->size;
@@ -524,6 +531,7 @@ static void __init map_kernel_segment(pgd_t *pgdp, void *va_start, void *va_end,
 				      pgprot_t prot, struct vm_struct *vma,
 				      int flags, unsigned long vm_flags)
 {
+	// IMRT> va_start의 물리 주소를 구한다.
 	phys_addr_t pa_start = __pa_symbol(va_start);
 	unsigned long size = va_end - va_start;
 
@@ -541,7 +549,7 @@ static void __init map_kernel_segment(pgd_t *pgdp, void *va_start, void *va_end,
 	vma->phys_addr	= pa_start;
 	vma->size	= size;
 	vma->flags	= VM_MAP | vm_flags;
-	// IMRT> mapkernel_segment를 호출한 주소를 caller에 저장한다.(caller에 현재 lr을 저장한다.)
+	// IMRT> debug report용도 Documentation/kprobes.txt 참고 caller의 lr을 저장함
 	vma->caller	= __builtin_return_address(0);
 
 	// IMRT> vmalloc_init()에서 사용할 수 있도록 vma를 vmlist에 추가한다.
@@ -605,18 +613,23 @@ static void __init map_kernel(pgd_t *pgdp)
 	 * all other segments are allowed to use contiguous mappings.
 	 */
 	// IMRT> vmlinux의 elf에 분할된 segment들을 pgdp가 가리키는 영역에 할당한다.
+	// IMRT> fixmap 영역의 pdg에 _text~_etext까지 영역에 대한 page table 생성
 	map_kernel_segment(pgdp, _text, _etext, text_prot, &vmlinux_text, 0,
 			   VM_NO_GUARD);
+	// IMRT> fixmap 영역의 pdg에 _start_rodata~_initext_begin까지 영역에 대한 page table 생성
 	map_kernel_segment(pgdp, __start_rodata, __inittext_begin, PAGE_KERNEL,
 			   &vmlinux_rodata, NO_CONT_MAPPINGS, VM_NO_GUARD);
+	// IMRT> fixmap 영역의 pdg에 __inittext_begin~__inittext_end까지 영역에 대한 page table 생성
 	map_kernel_segment(pgdp, __inittext_begin, __inittext_end, text_prot,
 			   &vmlinux_inittext, 0, VM_NO_GUARD);
+	// IMRT> fixmap 영역의 pdg에 __initdata_begin~__initdata_end까지 영역에 대한 page table 생성
 	map_kernel_segment(pgdp, __initdata_begin, __initdata_end, PAGE_KERNEL,
 			   &vmlinux_initdata, 0, VM_NO_GUARD);
+	// IMRT> fixmap 영역의 pdg에_data~_end 까지 영역에 대한 page table 생성
 	map_kernel_segment(pgdp, _data, _end, PAGE_KERNEL, &vmlinux_data, 0, 0);
 
-	// IMRT> TODO: pgd_val 확인 필요
 	// pgd_offset_raw(pgdp에서 FIXADDR_START만큼의 offset을 이동해서 해당 위치의 값을 확인함.
+	// IMRT> FIXMAP 영역을 pgdp가 가리키는 page table 영역에 설정한다. 
 	if (!READ_ONCE(pgd_val(*pgd_offset_raw(pgdp, FIXADDR_START)))) {
 		/*
 		 * The fixmap falls in a separate pgd to the kernel, and doesn't
@@ -671,18 +684,22 @@ void __init paging_init(void)
 	 *
 	 * To do this we need to go via a temporary pgd.
 	 */
-	// IMRT> TODO 9/29
+	// IMRT> 커널용 페이지 테이블이 준비되었으므로, 임시로 TTBR1 레지스터가 이 페이지를 가리키게 한다.
 	cpu_replace_ttbr1(__va(pgd_phys));
 	memcpy(swapper_pg_dir, pgdp, PGD_SIZE);
+	// IMRT> TTBR1이 swapper_pg_dir을 가리키게 바꾼다.
 	cpu_replace_ttbr1(lm_alias(swapper_pg_dir));
 
+	// IMRT> fixmap 영역의 pgd 영역을 clear한다.
 	pgd_clear_fixmap();
+	// IMRT> 임시로 사용하던 page table을 free한다. (swapper_pg_dir에서 해당 page table 정보를 가지고 있기 때문)
 	memblock_free(pgd_phys, PAGE_SIZE);
 
 	/*
 	 * We only reuse the PGD from the swapper_pg_dir, not the pud + pmd
 	 * allocated with it.
 	 */
+	// IMRT> PGD를 제외한 나머지 memblock 영역을 free한다.
 	memblock_free(__pa_symbol(swapper_pg_dir) + PAGE_SIZE,
 		      __pa_symbol(swapper_pg_end) - __pa_symbol(swapper_pg_dir)
 		      - PAGE_SIZE);
