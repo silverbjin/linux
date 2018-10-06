@@ -153,10 +153,14 @@ static inline void cpu_replace_ttbr1(pgd_t *pgdp)
 
 	phys_addr_t pgd_phys = virt_to_phys(pgdp);
 
+	// IMRT> idmap_cpu_replace_ttbr1은 idmapping 상태에서만 사용가능하다
 	replace_phys = (void *)__pa_symbol(idmap_cpu_replace_ttbr1);
 
+	//IMRT> ttbr0에 idmap page table를 매핑
 	cpu_install_idmap();
+	// IMRT> idmap_cpu_replace_ttbr1 함수 호출하여 ttbr1에 인자로 전달받은 page table을 매핑
 	replace_phys(pgd_phys);
+	// IMRT> idmap 해제
 	cpu_uninstall_idmap();
 }
 
