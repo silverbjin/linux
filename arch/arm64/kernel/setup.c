@@ -310,6 +310,8 @@ void __init setup_arch(char **cmdline_p)
 
 	acpi_table_upgrade();
 
+
+	// IMRT : 추후 필요시 분석 예정
 	/* Parse the ACPI tables for possible boot-time configuration */
 	acpi_boot_table_init();
 
