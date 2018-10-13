@@ -184,6 +184,7 @@ static void section_mark_present(struct mem_section *ms)
 	ms->section_mem_map |= SECTION_MARKED_PRESENT;
 }
 
+// IMRT(TOT0Ro) >> 해당 section_nr에서 present_section_nr이 설정 되어 있는 section_nr을 가져옴.
 static inline int next_present_section_nr(int section_nr)
 {
 	do {
@@ -195,6 +196,7 @@ static inline int next_present_section_nr(int section_nr)
 
 	return -1;
 }
+// IMRT(TOT0Ro) >> present_section의 section을 for each
 #define for_each_present_section_nr(start, section_nr)		\
 	for (section_nr = next_present_section_nr(start-1);	\
 	     ((section_nr >= 0) &&				\
@@ -211,6 +213,7 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
 	if (unlikely(!mem_section)) {
 		unsigned long size, align;
 
+                // IMRT(TOT0Ro) >> 8 * 1024
 		size = sizeof(struct mem_section*) * NR_SECTION_ROOTS;
 		align = 1 << (INTERNODE_CACHE_SHIFT);
 		mem_section = memblock_virt_alloc(size, align);
@@ -382,6 +385,7 @@ static void __init check_usemap_section_nr(int nid, unsigned long *usemap)
 		usemap_snr, pgdat_snr, nid);
 }
 #else
+// IMRT(TOT0Ro) >> 이거 실행
 static unsigned long * __init
 sparse_early_usemaps_alloc_pgdat_section(struct pglist_data *pgdat,
 					 unsigned long size)
@@ -533,6 +537,7 @@ static void __init alloc_usemap_and_memmap(void (*alloc_func)
 	int nodeid_begin = 0;
 	unsigned long pnum_begin = 0;
 
+        // IMRT(TOT0Ro) >> 최초의 mem_section의 pnum을 가져옴.
 	for_each_present_section_nr(0, pnum) {
 		struct mem_section *ms;
 
@@ -542,6 +547,7 @@ static void __init alloc_usemap_and_memmap(void (*alloc_func)
 		break;
 	}
 	map_count = 1;
+        // IMRT(TOT0Ro) >> 시작 mem_section부터 mem_section의 pnum을 받아옴.
 	for_each_present_section_nr(pnum_begin + 1, pnum) {
 		struct mem_section *ms;
 		int nodeid;
@@ -606,6 +612,7 @@ void __init sparse_init(void)
 							(void *)usemap_map);
 
 #ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
+        // SPARSEMEM 메모리 크기.
 	size2 = sizeof(struct page *) * NR_MEM_SECTIONS;
 	map_map = memblock_virt_alloc(size2, 0);
 	if (!map_map)

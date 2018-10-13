@@ -1078,6 +1078,11 @@ static inline unsigned long early_pfn_to_nid(unsigned long pfn)
 #define PA_SECTION_SHIFT	(SECTION_SIZE_BITS)
 #define PFN_SECTION_SHIFT	(SECTION_SIZE_BITS - PAGE_SHIFT)
 
+// IMRT(TOT0Ro) >> VA_BITS == PA_BITS == 48
+// SECTION_SIZE_BITS = 30 (1GB)
+// SECTIONS_SHIFT = 48 - 30 = 18
+// NR_MEM_SECTIONS = 256k
+// 이론적으로 가질 수 있는 섹션 수 = 256k
 #define NR_MEM_SECTIONS		(1UL << SECTIONS_SHIFT)
 
 #define PAGES_PER_SECTION       (1UL << PFN_SECTION_SHIFT)
@@ -1136,12 +1141,17 @@ struct mem_section {
 };
 
 #ifdef CONFIG_SPARSEMEM_EXTREME
+// IMRT(TOT0Ro) 4k / 16 = 256
 #define SECTIONS_PER_ROOT       (PAGE_SIZE / sizeof (struct mem_section))
 #else
 #define SECTIONS_PER_ROOT	1
 #endif
 
+
 #define SECTION_NR_TO_ROOT(sec)	((sec) / SECTIONS_PER_ROOT)
+// IMRT(TOT0Ro) >> 256k, 256
+//  (((256k) + (256) - 1) / (256))
+// = 1024
 #define NR_SECTION_ROOTS	DIV_ROUND_UP(NR_MEM_SECTIONS, SECTIONS_PER_ROOT)
 #define SECTION_ROOT_MASK	(SECTIONS_PER_ROOT - 1)
 
