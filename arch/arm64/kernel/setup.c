@@ -308,9 +308,11 @@ void __init setup_arch(char **cmdline_p)
 
 	paging_init();
 
+        // IMRT(TOT0Ro-qemu) > return됨.
 	acpi_table_upgrade();
 
 	/* Parse the ACPI tables for possible boot-time configuration */
+        // IMRT(TOT0Ro-qemu) > acpi_disabled 가 0이됨.
 	acpi_boot_table_init();
 
 	if (acpi_disabled)
