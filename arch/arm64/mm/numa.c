@@ -421,6 +421,7 @@ static int __init dummy_numa_init(void)
 	pr_info("Faking a node at [mem %#018Lx-%#018Lx]\n",
 		0LLU, PFN_PHYS(max_pfn) - 1);
 
+	// IMRT : memblk에 모든 memory region의 node id(nid)를 0으로 설정
 	for_each_memblock(memory, mblk) {
 		ret = numa_add_memblk(0, mblk->base, mblk->base + mblk->size);
 		if (!ret)

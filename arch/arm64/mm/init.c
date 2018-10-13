@@ -303,9 +303,13 @@ static void __init arm64_memory_present(void)
 {
 	struct memblock_region *reg;
 
+	// IMRT : 각 memory region에 대해 sparsemem의 섹션으로 초기화
 	for_each_memblock(memory, reg) {
 		int nid = memblock_get_region_node(reg);
 
+		// IMRT : 각 섹션에 노드 id를 기록
+		// memblock_region_memory_base_pfn(reg) - region이 가리키는 메모리 시작주소 
+		// memblock_region_memory_end_pfn(reg) - region이 가리키는 메모리 끝 주소
 		memory_present(nid, memblock_region_memory_base_pfn(reg),
 				memblock_region_memory_end_pfn(reg));
 	}
@@ -501,6 +505,8 @@ void __init arm64_memblock_init(void)
 	memblock_allow_resize();
 }
 
+
+// IMRT : 부트 메모리 초기화
 void __init bootmem_init(void)
 {
 	unsigned long min, max;
@@ -508,17 +514,21 @@ void __init bootmem_init(void)
 	min = PFN_UP(memblock_start_of_DRAM());
 	max = PFN_DOWN(memblock_end_of_DRAM());
 
+	// IMRT : 커널 파라미터(memtest)로 메모리 패턴 테스트 수행
 	early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
 
 	max_pfn = max_low_pfn = max;
 
+	// IMRT : NUMA 시스템 초기화
 	arm64_numa_init();
+	// IMRT : mem_section 초기화
 	/*
 	 * Sparsemem tries to allocate bootmem in memory_present(), so must be
 	 * done after the fixed reservations.
 	 */
 	arm64_memory_present();
 
+	// IMRT : 18.10.13 할 차례
 	sparse_init();
 	zone_sizes_init(min, max);
 
