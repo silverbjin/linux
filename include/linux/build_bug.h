@@ -4,7 +4,8 @@
 
 #include <linux/compiler.h>
 
-#ifdef __CHECKER__
+//#ifdef __CHECKER__
+#if defined(__CHECKER__)
 #define __BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
 #define BUILD_BUG_ON_NOT_POWER_OF_2(n) (0)
 #define BUILD_BUG_ON_ZERO(e) (0)

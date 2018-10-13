@@ -704,9 +704,10 @@ void __init paging_init(void)
 	// IMRT> TTBR1이 swapper_pg_dir을 가리키게 바꾼다.
 	cpu_replace_ttbr1(lm_alias(swapper_pg_dir));
 
-	// IMRT> fixmap 영역의 pgd 영역을 clear한다.
+        // IMRT(TOT0Ro) > fixmap의 FIX_PGD를 clear
 	pgd_clear_fixmap();
-	// IMRT> 임시로 사용하던 page table을 free한다. (swapper_pg_dir에서 해당 page table 정보를 가지고 있기 때문)
+        // IMRT(TOT0Ro) > swapper_pg_dir이 가르키는 페이지 테이블에 pgd 내용을 모두 복사 했으므로,
+        // 임시로 할당해서 커널을 매핑해서 사용하던 pgd 테이블 (1페이지)를 free.
 	memblock_free(pgd_phys, PAGE_SIZE);
 
 	/*
