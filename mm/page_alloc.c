@@ -6022,6 +6022,7 @@ void __paginginit set_pageblock_order(void)
 		return;
 
 	if (HPAGE_SHIFT > PAGE_SHIFT)
+		// HUGETLB_PAGE_ORDER: 9
 		order = HUGETLB_PAGE_ORDER;
 	else
 		order = MAX_ORDER - 1;

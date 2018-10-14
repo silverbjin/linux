@@ -303,8 +303,10 @@ static void __init arm64_memory_present(void)
 {
 	struct memblock_region *reg;
 
-	// IMRT : 각 memory region에 대해 sparsemem의 섹션으로 초기화
+	// IMRT : 각 memblock의 memory region에 대해 sparsemem의 섹션으로 초기화
 	for_each_memblock(memory, reg) {
+		// node: momblock의 region을 관리하는 단위
+		// nid: memblock region의 node id
 		int nid = memblock_get_region_node(reg);
 
 		// IMRT : 각 섹션에 노드 id를 기록
@@ -521,15 +523,16 @@ void __init bootmem_init(void)
 
 	// IMRT : NUMA 시스템 초기화
 	arm64_numa_init();
-	// IMRT : mem_section 초기화
 	/*
 	 * Sparsemem tries to allocate bootmem in memory_present(), so must be
 	 * done after the fixed reservations.
 	 */
+	// IMRT : mem_section 초기화
 	arm64_memory_present();
 
-	// IMRT : 18.10.13 할 차례
+	// IMRT : mem_map 초기화
 	sparse_init();
+	// IMRT : zone 초기화
 	zone_sizes_init(min, max);
 
 	memblock_dump_all();
