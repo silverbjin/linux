@@ -290,6 +290,9 @@ struct page *sparse_decode_mem_map(unsigned long coded_mem_map, unsigned long pn
 	return ((struct page *)coded_mem_map) + section_nr_to_pfn(pnum);
 }
 
+// IMRT : 기존에 임시로 노드정보를 저장하여 사용하고 있는 section_mem_map 필드를
+// 원래 용도(mem_map의 주소저장)로 변경
+// 또한 page_block_flag에 해당 mem_section의 usemap 매핑
 static int __meminit sparse_init_one_section(struct mem_section *ms,
 		unsigned long pnum, struct page *mem_map,
 		unsigned long *pageblock_bitmap)
@@ -298,6 +301,9 @@ static int __meminit sparse_init_one_section(struct mem_section *ms,
 		return -EINVAL;
 
 	ms->section_mem_map &= ~SECTION_MAP_MASK;
+	// IMRT : section_mem_map에 mem_map은 pnum을 이용하여 ecode되어 저장되며
+	// 사용시에는 반드시 decode해야 함. 64bit 중, 48bit만 필요
+	// 참고: member_section의 하위 3bit 역할: flag (259p 참고)
 	ms->section_mem_map |= sparse_encode_mem_map(mem_map, pnum) |
 							SECTION_HAS_MEM_MAP;
  	ms->pageblock_flags = pageblock_bitmap;
@@ -403,6 +409,8 @@ static void __init check_usemap_section_nr(int nid, unsigned long *usemap)
 }
 #endif /* CONFIG_MEMORY_HOTREMOVE */
 
+// IMRT : 같은 노드id(nid)를 사용하고 연속되는 present mem_section에 대해
+// usemap을 할당하여, usemap_map으로 관리
 static void __init sparse_early_usemaps_alloc_node(void *data,
 				 unsigned long pnum_begin,
 				 unsigned long pnum_end,
@@ -413,7 +421,7 @@ static void __init sparse_early_usemaps_alloc_node(void *data,
 	unsigned long **usemap_map = (unsigned long **)data;
 	int size = usemap_size();
 
-	// IMRT : 10월 20일에 여기부터 시작 
+	// IMRT : usamap size*(동일 nid의 연속되는 present mem_section 개수) 할당받음
 	usemap = sparse_early_usemaps_alloc_pgdat_section(NODE_DATA(nodeid),
 							  size * usemap_count);
 	if (!usemap) {
@@ -516,6 +524,8 @@ static struct page __init *sparse_early_mem_map_alloc(unsigned long pnum)
 	struct mem_section *ms = __nr_to_section(pnum);
 	int nid = sparse_early_nid(ms);
 
+	// IMRT : vmemmap을 사용.
+	// map에 해당하는 mem_section에 저장될 mem_map값을 할당해서 vmemmap에도 함께 저장
 	map = sparse_mem_map_populate(pnum, nid, NULL);
 	if (map)
 		return map;
@@ -626,6 +636,8 @@ void __init sparse_init(void)
 	usemap_map = memblock_virt_alloc(size, 0);
 	if (!usemap_map)
 		panic("can not allocate usemap_map\n");
+	// IMRT: 노드 id가 같은 present_section을 묶어 sparse_early_usemaps_alloc_node함수를
+	// 각각 실행하여 할당받아, usemap_map이 가리키도록 한다. 
 	alloc_usemap_and_memmap(sparse_early_usemaps_alloc_node,
 							(void *)usemap_map);
 
@@ -651,15 +663,18 @@ void __init sparse_init(void)
 		if (!map)
 			continue;
 
+		// IMRT : 준비된 usemap과 mem_map을 mem_section에 연결
 		sparse_init_one_section(__nr_to_section(pnum), pnum, map,
 								usemap);
 	}
 
+	// IMRT : 구현 무
 	vmemmap_populate_print_last();
 
 #ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
 	memblock_free_early(__pa(map_map), size2);
 #endif
+	// IMRT : 사용끝난 usemem_map 해제
 	memblock_free_early(__pa(usemap_map), size);
 }
 

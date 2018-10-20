@@ -532,7 +532,7 @@ void __init bootmem_init(void)
 
 	// IMRT : mem_map 초기화
 	sparse_init();
-	// IMRT : zone 초기화
+	// IMRT : zone 초기화 18.10.27 할 차례
 	zone_sizes_init(min, max);
 
 	memblock_dump_all();
