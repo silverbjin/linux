@@ -304,9 +304,11 @@ static void __init arm64_memory_present(void)
 	struct memblock_region *reg;
 
 	// IMRT : 각 memory region에 대해 sparsemem의 섹션으로 초기화
+	// IMRT(TOT0Ro) >> 각 region별로 present 설정, mem_section 할당.
 	for_each_memblock(memory, reg) {
 		int nid = memblock_get_region_node(reg);
 
+		// IMRT(TOT0Ro) >> mem section을 할당하고 초기화하고 present section인지 검사하고
 		// IMRT : 각 섹션에 노드 id를 기록
 		// memblock_region_memory_base_pfn(reg) - region이 가리키는 메모리 시작주소 
 		// memblock_region_memory_end_pfn(reg) - region이 가리키는 메모리 끝 주소
@@ -344,7 +346,7 @@ static int __init early_init_dt_scan_usablemem(unsigned long node,
 	if (depth != 1 || strcmp(uname, "chosen") != 0)
 		return 0;
 
-        // IMRT > 커널에서 사용할 수 있는 제한된 영역을 설명하는 기본 주소와 크기를 설명합니다.
+	// IMRT > 커널에서 사용할 수 있는 제한된 영역을 설명하는 기본 주소와 크기를 설명합니다.
 	reg = of_get_flat_dt_prop(node, "linux,usable-memory-range", &len);
 	if (!reg || (len < (dt_root_addr_cells + dt_root_size_cells)))
 		return 1;
@@ -377,7 +379,7 @@ void __init arm64_memblock_init(void)
 	fdt_enforce_memory_region();
 
 	/* Remove memory above our supported physical address size */
-        // IMRT > 지원하는 물리적 메모리 주소 크기보다 큰 메모리(memblock.memory) 제거.
+	// IMRT > 지원하는 물리적 메모리 주소 크기보다 큰 메모리(memblock.memory) 제거.
 	memblock_remove(1ULL << PHYS_MASK_SHIFT, ULLONG_MAX);
 
 	/*
@@ -390,7 +392,7 @@ void __init arm64_memblock_init(void)
 	/*
 	 * Select a suitable value for the base of physical memory.
 	 */
-        // IMRT > memstart_addr의 시작 주소를 align 시킴.
+	// IMRT > memstart_addr의 시작 주소를 align 시킴.
 	memstart_addr = round_down(memblock_start_of_DRAM(),
 				   ARM64_MEMSTART_ALIGN);
 
@@ -399,12 +401,12 @@ void __init arm64_memblock_init(void)
 	 * linear mapping. Take care not to clip the kernel which may be
 	 * high in memory.
 	 */
-        // IMRT > start부터 linear_region 범위를 벗어나는 부분의 크기를 벗어남)을 제거.
+	// IMRT > start부터 linear_region 범위를 벗어나는 부분의 크기를 벗어남)을 제거.
 	memblock_remove(max_t(u64, memstart_addr + linear_region_size,
 			__pa_symbol(_end)), ULLONG_MAX);
 	if (memstart_addr + linear_region_size < memblock_end_of_DRAM()) {
 		/* ensure that memstart_addr remains sufficiently aligned */
-                // IMRT > memstart_addr보다 작은 주소 영역을 제거.
+		// IMRT > memstart_addr보다 작은 주소 영역을 제거.
 		memstart_addr = round_up(memblock_end_of_DRAM() - linear_region_size,
 					 ARM64_MEMSTART_ALIGN);
 		memblock_remove(0, memstart_addr);
@@ -415,7 +417,7 @@ void __init arm64_memblock_init(void)
 	 * high up in memory, add back the kernel region that must be accessible
 	 * via the linear mapping.
 	 */
-        // IMRT > memory limit가 있으면 그 부분을 다시 잘라냄. 
+	// IMRT > memory limit가 있으면 그 부분을 다시 잘라냄. 
 	if (memory_limit != (phys_addr_t)ULLONG_MAX) {
 		memblock_mem_limit_remove_map(memory_limit);
 		memblock_add(__pa_symbol(_text), (u64)(_end - _text));
@@ -444,14 +446,14 @@ void __init arm64_memblock_init(void)
 			"initrd not fully accessible via the linear mapping -- please check your bootloader ...\n")) {
 			initrd_start = 0;
 		} else {
-                        // IMRT > initrd 범위만큼 memblock_reserved 영역에 추가.
+			// IMRT > initrd 범위만큼 memblock_reserved 영역에 추가.
 			memblock_remove(base, size); /* clear MEMBLOCK_ flags */
 			memblock_add(base, size);
 			memblock_reserve(base, size);
 		}
 	}
 
-        // IMRT > CONFIG_RANDOMIZE_BASE : 보안 목적으로 커널 시작 주소를 랜덤하게 한다.
+	// IMRT > CONFIG_RANDOMIZE_BASE : 보안 목적으로 커널 시작 주소를 랜덤하게 한다.
 	if (IS_ENABLED(CONFIG_RANDOMIZE_BASE)) {
 		extern u16 memstart_offset_seed;
 		u64 range = linear_region_size -
@@ -473,11 +475,11 @@ void __init arm64_memblock_init(void)
 	 * Register the kernel text, kernel data, initrd, and initial
 	 * pagetables with memblock.
 	 */
-        // IMRT > 커널 영역을 reserve 한다.
+	// IMRT > 커널 영역을 reserve 한다.
 	memblock_reserve(__pa_symbol(_text), _end - _text);
 #ifdef CONFIG_BLK_DEV_INITRD
 	if (initrd_start) {
-                // IMRT > INITRD가 enabled 인지 disabled 상관 없이 reserved
+		// IMRT > INITRD가 enabled 인지 disabled 상관 없이 reserved
 		memblock_reserve(initrd_start, initrd_end - initrd_start);
 
 		/* the generic initrd code expects virtual addresses */
@@ -485,7 +487,7 @@ void __init arm64_memblock_init(void)
 		initrd_end = __phys_to_virt(initrd_end);
 	}
 #endif
-        // IMRT > FDT에서 reserved가 필요한 영역을 memblock reserved 영역에 추가
+	// IMRT > FDT에서 reserved가 필요한 영역을 memblock reserved 영역에 추가
 	early_init_fdt_scan_reserved_mem();
 
 	/* 4GB maximum for 32-bit only capable devices */
@@ -528,7 +530,6 @@ void __init bootmem_init(void)
 	 */
 	arm64_memory_present();
 
-	// IMRT : 18.10.13 할 차례
 	sparse_init();
 	zone_sizes_init(min, max);
 

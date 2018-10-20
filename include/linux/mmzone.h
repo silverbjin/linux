@@ -1075,19 +1075,25 @@ static inline unsigned long early_pfn_to_nid(unsigned long pfn)
  * PA_SECTION_SHIFT		physical address to/from section number
  * PFN_SECTION_SHIFT		pfn to/from section number
  */
+// IMRT(TOT0Ro) >> SECTION_SIZE_BITS = 30
 #define PA_SECTION_SHIFT	(SECTION_SIZE_BITS)
+// IMRT(TOT0Ro) >> 30 - 12 = 18
+// 섹션당 PAGE 개수
 #define PFN_SECTION_SHIFT	(SECTION_SIZE_BITS - PAGE_SHIFT)
 
 // IMRT(TOT0Ro) >> VA_BITS == PA_BITS == 48
 // SECTION_SIZE_BITS = 30 (1GB)
 // SECTIONS_SHIFT = 48 - 30 = 18
 // NR_MEM_SECTIONS = 256k
-// �̷������� ���� �� �ִ� ���� �� = 256k
+// 이론적으로 가질 수 있는 섹션 수 = 256k
 #define NR_MEM_SECTIONS		(1UL << SECTIONS_SHIFT)
 
+// IMRT(TOT0Ro) >> 256k
+// 한 섹션당 PAGE 수
 #define PAGES_PER_SECTION       (1UL << PFN_SECTION_SHIFT)
 #define PAGE_SECTION_MASK	(~(PAGES_PER_SECTION-1))
 
+// IMRT(TOT0Ro) >> ( 1 << (18 - 9) * ??)
 #define SECTION_BLOCKFLAGS_BITS \
 	((1UL << (PFN_SECTION_SHIFT - pageblock_order)) * NR_PAGEBLOCK_BITS)
 
@@ -1142,16 +1148,19 @@ struct mem_section {
 
 #ifdef CONFIG_SPARSEMEM_EXTREME
 // IMRT(TOT0Ro) 4k / 16 = 256
+// 2 level table 크기
+// 루트 당 섹션 수
 #define SECTIONS_PER_ROOT       (PAGE_SIZE / sizeof (struct mem_section))
 #else
 #define SECTIONS_PER_ROOT	1
 #endif
 
-
+// IMRT(TOT0Ro) >> sec의 root section
 #define SECTION_NR_TO_ROOT(sec)	((sec) / SECTIONS_PER_ROOT)
 // IMRT(TOT0Ro) >> 256k, 256
 //  (((256k) + (256) - 1) / (256))
 // = 1024
+// 1 level table 크기
 #define NR_SECTION_ROOTS	DIV_ROUND_UP(NR_MEM_SECTIONS, SECTIONS_PER_ROOT)
 #define SECTION_ROOT_MASK	(SECTIONS_PER_ROOT - 1)
 

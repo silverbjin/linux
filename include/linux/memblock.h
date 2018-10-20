@@ -124,7 +124,7 @@ void __memblock_free_late(phys_addr_t base, phys_addr_t size);
  * @p_end: ptr to phys_addr_t for end address of the range, can be %NULL
  * @p_nid: ptr to int for nid of the range, can be %NULL
  */
-// IMRT(TOT0Ro) > memblockÀÇ free ¿µ¿ªÀ» °è¼Ó °¡¸£Å°´Â for each¹®.
+// IMRT(TOT0Ro) > memblockì˜ free ì˜ì—­ì„ ê³„ì† ê°€ë¥´í‚¤ëŠ” for eachë¬¸.
 #define for_each_mem_range(i, type_a, type_b, nid, flags,		\
 			   p_start, p_end, p_nid)			\
 	for (i = 0, __next_mem_range(&i, nid, flags, type_a, type_b,	\
@@ -216,7 +216,7 @@ void __next_mem_pfn_range(int *idx, int nid, unsigned long *out_start_pfn,
  * Walks over free (memory && !reserved) areas of memblock.  Available as
  * soon as memblock is initialized.
  */
-// IMRT(TOT0Ro) > memblockÀÇ free¿µ¿ª¿¡ ´ëÇÑ foreach
+// IMRT(TOT0Ro) > memblockì˜ freeì˜ì—­ì— ëŒ€í•œ foreach
 #define for_each_free_mem_range(i, nid, flags, p_start, p_end, p_nid)	\
 	for_each_mem_range(i, &memblock.memory, &memblock.reserved,	\
 			   nid, flags, p_start, p_end, p_nid)
@@ -401,6 +401,7 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
 	return PFN_UP(reg->base + reg->size);
 }
 
+// IMRT(TOT0Ro) >> memblock_typeì— í•´ë‹¹í•˜ëŠ” regionì— ëŒ€í•œ for each
 #define for_each_memblock(memblock_type, region)					\
 	for (region = memblock.memblock_type.regions;					\
 	     region < (memblock.memblock_type.regions + memblock.memblock_type.cnt);	\

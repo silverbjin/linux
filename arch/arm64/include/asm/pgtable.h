@@ -303,10 +303,11 @@ static inline int pte_same(pte_t pte_a, pte_t pte_b)
  * Hugetlb definitions.
  */
 #define HUGE_MAX_HSTATE		4
-// IMRT(TOT0Ro) >> 8189
+// IMRT(TOT0Ro) >> 21
 #define HPAGE_SHIFT		PMD_SHIFT
 #define HPAGE_SIZE		(_AC(1, UL) << HPAGE_SHIFT)
 #define HPAGE_MASK		(~(HPAGE_SIZE - 1))
+// IMRT(TOT0Ro) >> 21 - 12 = 9
 #define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
 
 #define __HAVE_ARCH_PTE_SPECIAL
