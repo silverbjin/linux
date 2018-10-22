@@ -401,7 +401,7 @@ static inline unsigned long memblock_region_reserved_end_pfn(const struct memblo
 	return PFN_UP(reg->base + reg->size);
 }
 
-// IMRT(TOT0Ro) >> memblock_type에 해당하는 region에 대한 for each
+// IMRT(TOT0Ro) >> memblock_type 대뱁 region  for each
 #define for_each_memblock(memblock_type, region)					\
 	for (region = memblock.memblock_type.regions;					\
 	     region < (memblock.memblock_type.regions + memblock.memblock_type.cnt);	\

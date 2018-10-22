@@ -77,14 +77,14 @@ pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
 }
 EXPORT_SYMBOL(phys_mem_access_prot);
 
-// IMRT(TOT0Ro) > 아직 사용하지 않는 PTE 테이블을 이용해 한 페이지 크기의 물리 주소 영역을 0으로 초기화.
 //IMRT> 페이지 테이블 용도로 사용할 싱글 페이지를 할당하여 0으로 초기화 후 물리 주소 리턴
 static phys_addr_t __init early_pgtable_alloc(void)
 {
 	phys_addr_t phys;
 	void *ptr;
 
-	// IMRT(TOT0Ro) > memblock으로부터 페이지크기를 할당 받음.
+
+  // IMRT(TOT0Ro) > memblock으로부터 페이지크기를 할당 받음.
 	//IMRT> memblock에서 하나의 페이지의 물리주소를 할당받는다
 	phys = memblock_alloc(PAGE_SIZE, PAGE_SIZE);
 
@@ -93,11 +93,13 @@ static phys_addr_t __init early_pgtable_alloc(void)
 	 * slot will be free, so we can (ab)use the FIX_PTE slot to initialise
 	 * any level of table.
 	 */
-	// IMRT(TOT0Ro) > fixmap을 이용해 phys 공간을 0으로 초기화
+  
+  // IMRT(TOT0Ro) > fixmap을 이용해 phys 공간을 0으로 초기화
 	// IMRT> fixmap의 FIX_PTE 주소에 해당 페이지 물리주소를 매핑
 	ptr = pte_set_fixmap(phys);
 
-	// IMRT> FIX_PTE가 가리키는 물리주소를 o으로 set
+  // IMRT> FIX_PTE가 가리키는 물리주소를 o으로 set
+  // IMRT(TOT0Ro) > fixmap을 이용해 phys 공간을 0으로 초기화
 	memset(ptr, 0, PAGE_SIZE);
 
 	/*
