@@ -229,7 +229,7 @@ static inline void * __init memblock_virt_alloc_node(
 					    BOOTMEM_ALLOC_ACCESSIBLE, nid);
 }
 
-// IMRT(TOT0Ro) >> 이거 실행
+// TOT0Ro >> 이거 실행
 static inline void * __init memblock_virt_alloc_node_nopanic(
 						phys_addr_t size, int nid)
 {

@@ -49,7 +49,7 @@ extern unsigned int pageblock_order;
 #else /* CONFIG_HUGETLB_PAGE_SIZE_VARIABLE */
 
 /* Huge pages are a constant size */
-// IMRT(TOT0Ro) >> 9
+// TOT0Ro >> 9
 #define pageblock_order		HUGETLB_PAGE_ORDER
 
 #endif /* CONFIG_HUGETLB_PAGE_SIZE_VARIABLE */

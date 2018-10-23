@@ -6018,7 +6018,7 @@ void __paginginit set_pageblock_order(void)
 	unsigned int order;
 
 	/* Check that pageblock_nr_pages has not already been setup */
-        // IMRT(TOT0Ro) >> 무조건 여기서 리턴. pageblock_order == 9
+        // TOT0Ro >> 무조건 여기서 리턴. pageblock_order == 9
 	if (pageblock_order)
 		return;
 

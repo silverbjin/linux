@@ -68,7 +68,7 @@ extern unsigned long empty_zero_page[PAGE_SIZE / sizeof(unsigned long)];
 #define __pte_to_phys(pte)	\
 	((pte_val(pte) & PTE_ADDR_LOW) | ((pte_val(pte) & PTE_ADDR_HIGH) << 36))
 #define __phys_to_pte_val(phys)	(((phys) | ((phys) >> 36)) & PTE_ADDR_MASK)
-// IMRT(TOT0Ro) > 이 else문의 매크로를 정의.
+// TOT0Ro > 이 else문의 매크로를 정의.
 #else
 #define __pte_to_phys(pte)	(pte_val(pte) & PTE_ADDR_MASK)
 #define __phys_to_pte_val(phys)	(phys)
@@ -303,11 +303,11 @@ static inline int pte_same(pte_t pte_a, pte_t pte_b)
  * Hugetlb definitions.
  */
 #define HUGE_MAX_HSTATE		4
-// IMRT(TOT0Ro) >> 21
+// TOT0Ro >> 21
 #define HPAGE_SHIFT		PMD_SHIFT
 #define HPAGE_SIZE		(_AC(1, UL) << HPAGE_SHIFT)
 #define HPAGE_MASK		(~(HPAGE_SIZE - 1))
-// IMRT(TOT0Ro) >> 21 - 12 = 9
+// TOT0Ro >> 21 - 12 = 9
 #define HUGETLB_PAGE_ORDER	(HPAGE_SHIFT - PAGE_SHIFT)
 
 #define __HAVE_ARCH_PTE_SPECIAL

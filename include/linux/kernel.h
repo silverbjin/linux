@@ -854,7 +854,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
  * This macro does strict typechecking of @lo/@hi to make sure they are of the
  * same type as @val.  See the unnecessary pointer comparisons.
  */
-// IMRT(TOT0Ro) > lo < hi 가 항상 성립 할 때, val lo hi 셋 중 중간 값 반환
+// TOT0Ro > lo < hi 가 항상 성립 할 때, val lo hi 셋 중 중간 값 반환
 // lo ~ hi 내에서 val에 가장 근접한 값 반환.
 // val < lo : lo
 // lo < val < hi : val
@@ -885,7 +885,7 @@ static inline void ftrace_dump(enum ftrace_dump_mode oops_dump_mode) { }
  * @x: first value
  * @y: second value
  */
-// IMRT(TOT0Ro) > min1과 min2를 사용하고 있는데 위의 내용을 복사한 후
+// TOT0Ro > min1과 min2를 사용하고 있는데 위의 내용을 복사한 후
 // 수정을 안해 생긴 오타로 해석된다.
 #define max_t(type, x, y)				\
 	__max(type, type,				\

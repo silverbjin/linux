@@ -303,14 +303,14 @@ static void __init arm64_memory_present(void)
 {
 	struct memblock_region *reg;
 
-	// IMRT(TOT0Ro) >> 각 region별로 present 설정, mem_section 할당.
+	// TOT0Ro >> 각 region별로 present 설정, mem_section 할당.
 	// IMRT : 각 memblock의 memory region에 대해 sparsemem의 섹션으로 초기화
 	for_each_memblock(memory, reg) {
 		// node: momblock의 region을 관리하는 단위
 		// nid: memblock region의 node id
 		int nid = memblock_get_region_node(reg);
 
-		// IMRT(TOT0Ro) >> mem section을 할당하고 초기화하고 present section인지 검사하고
+		// TOT0Ro >> mem section을 할당하고 초기화하고 present section인지 검사하고
 		// IMRT : 각 섹션에 노드 id를 기록
 		// memblock_region_memory_base_pfn(reg) - region이 가리키는 메모리 시작주소 
 		// memblock_region_memory_end_pfn(reg) - region이 가리키는 메모리 끝 주소
