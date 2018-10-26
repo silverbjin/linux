@@ -206,12 +206,12 @@ static inline int next_present_section_nr(int section_nr)
 /* Record a memory area against a node. */
 void __init memory_present(int nid, unsigned long start, unsigned long end)
 {
-	unsigned long pfn; // page frame number
+	unsigned long pfn; 
 #ifdef CONFIG_SPARSEMEM_EXTREME
 	if (unlikely(!mem_section)) {
 		unsigned long size, align;
 
-		// NR_SECTION_ROOTS: 1단계 mem_section 배열
+		// IMRT >> NR_SECTION_ROOTS: 1단계 mem_section 배열 크기
 		size = sizeof(struct mem_section*) * NR_SECTION_ROOTS;
 		align = 1 << (INTERNODE_CACHE_SHIFT);
 		mem_section = memblock_virt_alloc(size, align);
@@ -228,17 +228,15 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
 		// IMRT : CONFIG_SPARSEMEM_EXTREME(arm64 default) 커널 옵션을 사용하는 경우에만 동작
 		// 2단계 mem_section 배열 할당 
 		sparse_index_init(section, nid);
-		// NODE_NOT_IN_PAGE_FLAGS가 정의된 경우 별도의 전역 section_to_node_table[ ] 배열에 해당 섹션을 인덱스로 해당 노드 id를 가리키게 한다.
+		// IMRT >> NODE_NOT_IN_PAGE_FLAGS가 정의된 경우 별도의 전역 section_to_node_table[ ] 배열에 해당 섹션을 인덱스로 해당 노드 id를 가리키게 한다.
 		// NODE_NOT_IN_PAGE_FLAGS: page 구조체의 flags 필드에 노드 번호를 저장할 비트가 부족한 32비트 아키텍처에서 사용되는 옵션
 		set_section_nid(section, nid);
 
-		// section 번호로 mem_section 구조체 정보를 기록
 		ms = __nr_to_section(section);
+		// IMRT >> section 초기화가 안된 section이면 nid, IS_ONLINE, MARKED_PRESENT을 마킹함.
 		if (!ms->section_mem_map) {
-			// section_mem_map 필드에 mem_map 포인터 주소를 저장
 			ms->section_mem_map = sparse_encode_early_nid(nid) |
 							SECTION_IS_ONLINE;
-			// 추가됐음을 표시함 
 			section_mark_present(ms);
 		}
 	}
@@ -429,8 +427,9 @@ static void __init sparse_early_usemaps_alloc_node(void *data,
 		return;
 	}
 
+	// IMRT >> present section에 해당하면 usemap 매핑
 	for (pnum = pnum_begin; pnum < pnum_end; pnum++) {
-		// 홀은 건너뛰겠다.
+		// IMRT >> present 마킹이 안되어 있으면 다음 section.
 		if (!present_section_nr(pnum))
 			continue;
 		usemap_map[pnum] = usemap;
@@ -525,7 +524,7 @@ static struct page __init *sparse_early_mem_map_alloc(unsigned long pnum)
 	int nid = sparse_early_nid(ms);
 
 	// IMRT : vmemmap을 사용.
-	// map에 해당하는 mem_section에 저장될 mem_map값을 할당해서 vmemmap에도 함께 저장
+	// map에 해당하는 mem_section을 vmemmap에 매핑하고 그 주소를 반환.
 	map = sparse_mem_map_populate(pnum, nid, NULL);
 	if (map)
 		return map;
@@ -554,12 +553,12 @@ static void __init alloc_usemap_and_memmap(void (*alloc_func)
 	int nodeid_begin = 0;
 	unsigned long pnum_begin = 0;
 
-	// IMRT : mem_section에 매핑되어 있는 첫번째의 mem_section structure 을 가져와서 pnum에 대입
+	// TOT0Ro >> 최초의 mem_section의 pnum을 가져옴.
+	// present section 중 최초의 section과 nodeid의 시작값과 section의 시작 번호를 가져옴.
 	for_each_present_section_nr(0, pnum) {
 		struct mem_section *ms;
 
 		ms = __nr_to_section(pnum);
-		// IMRT : nodeid_begin: pnum으로 찾아낸 mem_section의 노드 id(section_mem_map에 위치)
 		nodeid_begin = sparse_early_nid(ms);
 		pnum_begin = pnum;
 		break;
@@ -571,10 +570,13 @@ static void __init alloc_usemap_and_memmap(void (*alloc_func)
 
 		ms = __nr_to_section(pnum);
 		nodeid = sparse_early_nid(ms);
+		// TOT0Ro >> nodeid가 변경될 떄까지 map_count를 증가시킴.
 		if (nodeid == nodeid_begin) {
 			map_count++;
 			continue;
 		}
+		// TOT0Ro >> 변경 되면 변경 되기 전까지의 section들을 alloc_func하고
+		// 바뀐 nodeid로 다시 반복한다.
 		/* ok, we need to take cake of from pnum_begin to pnum - 1*/
 		alloc_func(data, pnum_begin, pnum,
 						map_count, nodeid_begin);
@@ -605,7 +607,7 @@ void __init sparse_init(void)
 	unsigned long *usemap;
 	unsigned long **usemap_map;
 	int size;
-	// CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER: SPARSEMEM을 사용하고, x86_64일 경우에만 활성화되는 옵션 
+// IMRT >> CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER: SPARSEMEM을 사용하고, x86_64일 경우에만 활성화되는 옵션 
 #ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
 	int size2;
 	struct page **map_map;
@@ -615,7 +617,7 @@ void __init sparse_init(void)
 	BUILD_BUG_ON(!is_power_of_2(sizeof(struct mem_section)));
 
 	/* Setup pageblock_order for HUGETLB_PAGE_SIZE_VARIABLE */
-	// pageblock_order를 9로 설정함
+	// IMRT >> pageblock_order를 9로 설정함
 	set_pageblock_order();
 
 	/*
@@ -629,7 +631,7 @@ void __init sparse_init(void)
 	 * powerpc need to call sparse_init_one_section right after each
 	 * sparse_early_mem_map_alloc, so allocate usemap_map at first.
 	 */
-	// NR_MEM_SECTIONS = 256K 인 이유:
+	// IMRT >> NR_MEM_SECTIONS = 256K 인 이유:
 	// MAX_PHYSMEM_BITS=48 (전체 물리 주소 256TB) / SECTION_SIZE_BITS=30 (섹션당 1G)
 	// size = section 수(256K) * 포인터 길이 
 	size = sizeof(unsigned long *) * NR_MEM_SECTIONS;
@@ -658,6 +660,7 @@ void __init sparse_init(void)
 #ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
 		map = map_map[pnum];
 #else
+		// IMRT >> present section만 mem_map 동적 할당.
 		map = sparse_early_mem_map_alloc(pnum);
 #endif
 		if (!map)
