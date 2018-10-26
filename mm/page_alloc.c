@@ -6018,11 +6018,11 @@ void __paginginit set_pageblock_order(void)
 	unsigned int order;
 
 	/* Check that pageblock_nr_pages has not already been setup */
+	// IMRT >> HUGETLB_PAGE_ORDER: 9
 	if (pageblock_order)
 		return;
 
 	if (HPAGE_SHIFT > PAGE_SHIFT)
-		// HUGETLB_PAGE_ORDER: 9
 		order = HUGETLB_PAGE_ORDER;
 	else
 		order = MAX_ORDER - 1;
