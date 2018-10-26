@@ -450,5 +450,6 @@ void __init arm64_numa_init(void)
 			return;
 	}
 
+	// TOT0Ro >> 이거 실행.(NUMA 시스템이 아니라서)
 	numa_init(dummy_numa_init);
 }

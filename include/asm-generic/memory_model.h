@@ -48,6 +48,7 @@
 	 __pgdat->node_start_pfn;					\
 })
 
+// TOT0Ro >> 이 옵션 사용.
 #elif defined(CONFIG_SPARSEMEM_VMEMMAP)
 
 /* memmap is virtually contiguous.  */

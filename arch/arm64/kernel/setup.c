@@ -306,9 +306,10 @@ void __init setup_arch(char **cmdline_p)
 	efi_init();
 	arm64_memblock_init();
 
+	// TOT0Ro >> memblock를 모두 page로 매핑. 커널 페이지도 페이지로 관리.
 	paging_init();
 
-	// IMRT(TOT0Ro-qemu) > return됨.
+	// TOT0Ro-qemu >> return됨.
 	acpi_table_upgrade();
 
 

@@ -1078,7 +1078,7 @@ static inline unsigned long early_pfn_to_nid(unsigned long pfn)
 // TOT0Ro >> SECTION_SIZE_BITS = 30
 #define PA_SECTION_SHIFT	(SECTION_SIZE_BITS)
 // TOT0Ro >> 30 - 12 = 18
-// 섹션당 PAGE 개수
+// 섹션당 PAGE 개수의 shift
 #define PFN_SECTION_SHIFT	(SECTION_SIZE_BITS - PAGE_SHIFT)
 
 // TOT0Ro >> VA_BITS == PA_BITS == 48
@@ -1132,7 +1132,7 @@ struct mem_section {
 
 	/* See declaration of similar field in struct zone */
 	unsigned long *pageblock_flags;
-#ifdef CONFIG_PAGE_EXTENSION
+#ifdef CONFIG_PAGE_EXTENSION // TOT0Ro >> 사용하지 않는 옵션
 	/*
 	 * If SPARSEMEM, pgdat doesn't have page_ext pointer. We use
 	 * section. (see page_ext.h about this.)

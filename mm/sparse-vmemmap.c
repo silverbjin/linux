@@ -256,6 +256,7 @@ int __meminit vmemmap_populate_basepages(unsigned long start,
 	return 0;
 }
 
+// TOT0Ro >> vmemmap에 pnum을 매핑하고 그 map 주소를 리턴
 struct page * __meminit sparse_mem_map_populate(unsigned long pnum, int nid,
 		struct vmem_altmap *altmap)
 {
@@ -263,11 +264,13 @@ struct page * __meminit sparse_mem_map_populate(unsigned long pnum, int nid,
 	unsigned long end;
 	struct page *map;
 
-	// pnum의 page frame number를 page 주소로 변환
+	// IMRT >> pnum의 page frame number를 page 주소로 변환
 	map = pfn_to_page(pnum * PAGES_PER_SECTION);
 	start = (unsigned long)map;
 	end = (unsigned long)(map + PAGES_PER_SECTION);
 
+	// IMRT >> vmemmap 매핑공간에 일괄 매핑 (pfn과 page 변환을 section_mem_map을
+	// 거치지 않고 바로 접근 가능)
 	if (vmemmap_populate(start, end, nid, altmap))
 		return NULL;
 
