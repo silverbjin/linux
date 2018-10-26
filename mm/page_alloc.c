@@ -6019,6 +6019,7 @@ void __paginginit set_pageblock_order(void)
 
 	/* Check that pageblock_nr_pages has not already been setup */
       // TOT0Ro >> 무조건 여기서 리턴. pageblock_order == 9
+	// IMRT >> HUGETLB_PAGE_ORDER: 9
 	if (pageblock_order)
 		return;
 

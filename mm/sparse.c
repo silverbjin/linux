@@ -219,7 +219,7 @@ static inline int next_present_section_nr(int section_nr)
 /* Record a memory area against a node. */
 void __init memory_present(int nid, unsigned long start, unsigned long end)
 {
-	unsigned long pfn; // page frame number
+	unsigned long pfn; 
 #ifdef CONFIG_SPARSEMEM_EXTREME
 	if (unlikely(!mem_section)) {
 		unsigned long size, align;
@@ -254,8 +254,6 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
 		// TOT0Ro >> 아무 일도 안함.
 		set_section_nid(section, nid);
 
-		// IMRT >> section 번호로 mem_section 구조체 정보를 기록
-		// TOT0Ro >> section 번호로 mem section을 반환함.
 		ms = __nr_to_section(section);
 		// IMRT >> section 초기화가 안된 section이면 nid, IS_ONLINE, MARKED_PRESENT을 마킹함.
 		if (!ms->section_mem_map) {
@@ -459,7 +457,6 @@ static void __init sparse_early_usemaps_alloc_node(void *data,
 	}
 
 	// IMRT >> present section에 해당하면 usemap 매핑
-	// TOT0Ro >> present section을 돌면서 
 	for (pnum = pnum_begin; pnum < pnum_end; pnum++) {
 		// IMRT >> present 마킹이 안되어 있으면 다음 section.
 		if (!present_section_nr(pnum))
