@@ -5800,7 +5800,7 @@ static unsigned long __meminit zone_spanned_pages_in_node(int nid,
 	/* Get the start and end of the zone */
 	*zone_start_pfn = arch_zone_lowest_possible_pfn[zone_type];
 	*zone_end_pfn = arch_zone_highest_possible_pfn[zone_type];
-	// IMRT > Cause of ZONE_MOVABLE case, start_pfn,  end_pfn should be adjusted.
+	// IMRT > ZONE_MOVABLE 때문에, start_pfn과 end_pfn값의 조정이 필요하다.
  	adjust_zone_range_for_zone_movable(nid, zone_type,
 	adjust_zone_range_for_zone_movable(nid, zone_type,
 				node_start_pfn, node_end_pfn,
@@ -5831,6 +5831,7 @@ unsigned long __meminit __absent_pages_in_range(int nid,
 	unsigned long start_pfn, end_pfn;
 	int i;
 
+	// IMRT > Hole은 memblock에 존재하지 않는다. -> 그러므로, 현재 nr_absent에서 범위 안에 있는 memblock의 pfn을 빼주면, 범위 안의 hole의 pfn을 구할 수 있다.  
 	// IMRT > Hole is out of memblock. SO, current nr_absent - pfns of all the memblocks in range = pfn of holes in range
 	for_each_mem_pfn_range(i, nid, &start_pfn, &end_pfn, NULL) {
 		start_pfn = clamp(start_pfn, range_start_pfn, range_end_pfn);
@@ -5871,7 +5872,9 @@ static unsigned long __meminit zone_absent_pages_in_node(int nid,
 		return 0;
 
 	// IMRT > clamp -> calculate middle value between three values.
+	// IMRT > clamp : 3개의 value중 중간 값을 돌려준다.
 	// IMRT > Check and adjust just zone_start_pfn, zone_end_pfn
+	// IMRT > zone_start_pfn, zone_end_pfn을 조정한다. (node_start_pfn 혹은 node_end_pfn이  zone_low, zone_high사이에 있을 경우 유효)
 	zone_start_pfn = clamp(node_start_pfn, zone_low, zone_high);
 	zone_end_pfn = clamp(node_end_pfn, zone_low, zone_high);
 
@@ -5887,7 +5890,9 @@ static unsigned long __meminit zone_absent_pages_in_node(int nid,
 	 * and vice versa.
 	 */
 	// IMRT > mirrored_kernelcore is assumed false for arm64
-	// IMRT > When using mirrored_kernelcore and ZONE_MOVABLE athe sametime, check for the error above. (mirrored memblock should not be ZONE_MOVEABLE and vice versa) 
+	// IMRT > mirrored_kernelcore는 arm64에서는 쓰이지 않는다. (x86에서 사용)
+	// IMRT > When using mirrored_kernelcore and ZONE_MOVABLE at the sametime, check for the error below. (mirrored memblock should not be ZONE_MOVEABLE and vice versa) 
+	// IMRT > mirrored_kernelcore와 ZONE_MOVABLE이 동시에 사용된 경우, 중복된 구간의 nr_absent를 조정한다.
 	if (mirrored_kernelcore && zone_movable_pfn[nid]) {
 		unsigned long start_pfn, end_pfn;
 		struct memblock_region *r;
@@ -5946,6 +5951,7 @@ static inline unsigned long __meminit zone_absent_pages_in_node(int nid,
 #endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
 
 // IMRT > Find and set totalpage number and zone information in pgdat.
+// IMRT > pgdat 구조체에 totalpage number와 zone info를 세팅한다.
 static void __meminit calculate_node_totalpages(struct pglist_data *pgdat,
 						unsigned long node_start_pfn,
 						unsigned long node_end_pfn,
@@ -5961,6 +5967,7 @@ static void __meminit calculate_node_totalpages(struct pglist_data *pgdat,
 		unsigned long size, real_size;
 
 		// IMRT >> Calculate exact start_pfn and end_pfn of zone, and return end_pfn-start_pfn (textbook page 286) 
+		// IMRT > zone의 정확한 start_pfn, end_pfn을 구한 후, end_pfn - start_pfn을 돌려준다.
 		size = zone_spanned_pages_in_node(pgdat->node_id, i,
 						  node_start_pfn,
 						  node_end_pfn,
@@ -5968,6 +5975,7 @@ static void __meminit calculate_node_totalpages(struct pglist_data *pgdat,
 						  &zone_end_pfn,
 						  zones_size);
 		// IMRT >> Calculate number of pages in holes, and calculate real number of pages.
+		// IMRT > zone에 존재하는 홀의 pfn을 구해, zone의 실제 사이즈를 구한다.
 		real_size = size - zone_absent_pages_in_node(pgdat->node_id, i,
 						  node_start_pfn, node_end_pfn,
 						  zholes_size);
@@ -6259,6 +6267,7 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
 	start_pfn = node_start_pfn;
 #endif
 	// IMRT > calculate total page numbers of a certain node. (Exclude holes)
+	// IMRT > 특정 노드의 hole을 제외한 page number를 계산하여 pgdat에 넣어준다.
 	calculate_node_totalpages(pgdat, start_pfn, end_pfn,
 				  zones_size, zholes_size);
 
@@ -6291,6 +6300,7 @@ void __paginginit zero_resv_unavail(void)
 	 */
 	pgcnt = 0;
 	// IMRT > Find reserved and NID = -1 nodes. Count and zero those page sturcts. 
+	// IMRT > NID = -1인 노드를 찾아 그 수를 세고, zero clear한다.
 	for_each_resv_unavail_range(i, &start, &end) {
 		for (pfn = PFN_DOWN(start); pfn < PFN_UP(end); pfn++) {
 			if (!pfn_valid(ALIGN_DOWN(pfn, pageblock_nr_pages)))
@@ -6730,6 +6740,7 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 	// IMRT >> 
 	memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
 	// IMRT > Currently no Arm64 HW is ready for the memory hotplug function. (cf. High possibility to use figure b in textboot p255.)
+	// IMRT > Arm64 hw는 현재 memory hotplug에 지원준비를 마치지 못함. (책 255쪽 참고)
 	find_zone_movable_pfns_for_nodes();
 
 	/* Print out the zone ranges */
@@ -6766,6 +6777,7 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 
 	/* Initialise every node */
 	// IMRT > Just for verifying page->flags related parameters.
+	// IMRT > page->flags 관련된 변수들 확인.
 	mminit_verify_pageflags_layout();
 	// IMRT > Set nr_node_ids. nr_node_ids = highest node id.
 	setup_nr_node_ids();
@@ -6780,6 +6792,7 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 		check_for_memory(pgdat, nid);
 	}
 	// IMRT > There is some 'unavailable' memblocks. zero them.
+	// IMRT > 일부 unavailable 메모리 블록들을 찾아 zeroing한다.
 	zero_resv_unavail();
 }
 
