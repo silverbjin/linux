@@ -6648,6 +6648,7 @@ restart:
 	// IMRT >> required_kernelcore % usable_nodes > 0 일 때 나머지를 다시 분산.
 	// required_kernelcore < usable_nodes 가 될 때까지.
 	// 근데 말이 안됨. 10 % 3 > 2 라는 의미임. 무조건 a % b <= b-1이기 때문에;;
+	// 가 아님. node의 크기는 전부 같지 않을 수도 있기 때문.
 	usable_nodes--;
 	if (usable_nodes && required_kernelcore > usable_nodes)
 		goto restart;
