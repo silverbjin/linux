@@ -466,12 +466,14 @@ static u64 __init of_get_cpu_mpidr(struct device_node *dn)
 	 * considered invalid to build a cpu_logical_map
 	 * entry.
 	 */
+	// IMRT >> cell: "reg"의 주소값
 	cell = of_get_property(dn, "reg", NULL);
 	if (!cell) {
 		pr_err("%pOF: missing reg property\n", dn);
 		return INVALID_HWID;
 	}
 
+	// IMRT >> hwid: 읽어온 "reg"의 주소값을 physical cpu id 
 	hwid = of_read_number(cell, of_n_addr_cells(dn));
 	/*
 	 * Non affinity bits must be set to 0 in the DT
@@ -505,12 +507,15 @@ static bool __init is_mpidr_duplicate(unsigned int cpu, u64 hwid)
  */
 static int __init smp_cpu_setup(int cpu)
 {
+	// IMRT >> 현재 cpu에 대해 cpu operations 를 설정
 	if (cpu_read_ops(cpu))
 		return -ENODEV;
 
+	// IMRT >> 위에서 설정한 cpu_ops structure의 cpu init 호출함
 	if (cpu_ops[cpu]->cpu_init(cpu))
 		return -ENODEV;
 
+	// IMRT >> cpumask를 설정
 	set_cpu_possible(cpu, true);
 
 	return 0;
@@ -645,6 +650,7 @@ static void __init of_parse_and_init_cpus(void)
 			}
 
 			bootcpu_valid = true;
+			// IMRT >> 0번 CPU와 Numa node ID를 매핑시킴 
 			early_map_cpu_to_node(0, of_node_to_nid(dn));
 
 			/*
@@ -660,6 +666,8 @@ static void __init of_parse_and_init_cpus(void)
 			goto next;
 
 		pr_debug("cpu logical map 0x%llx\n", hwid);
+		// cpu_count: logical cpu id 
+		// hwid: physical cpu id
 		cpu_logical_map(cpu_count) = hwid;
 
 		early_map_cpu_to_node(cpu_count, of_node_to_nid(dn));
@@ -673,11 +681,16 @@ next:
  * cpu logical map array containing MPIDR values related to logical
  * cpus. Assumes that cpu_logical_map(0) has already been initialized.
  */
+// IMRT >> MPIDR을 읽어서 logical id 맵 작성
+// cpu_ops structure 설정
+// cpu init 호출 
 void __init smp_init_cpus(void)
 {
 	int i;
 
 	if (acpi_disabled)
+		// IMRT >> logical cpu ID와 physical cpu ID를 매핑시킴
+		// logical CPU ID와 Numa node ID를 매핑시킴 
 		of_parse_and_init_cpus();
 	else
 		/*
