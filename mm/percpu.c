@@ -1089,10 +1089,12 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	 * PCPU_BITMAP_BLOCK_SIZE.  One of these constants is a multiple of
 	 * the other.
 	 */
+	// IMRT >> 4k.
 	lcm_align = lcm(PAGE_SIZE, PCPU_BITMAP_BLOCK_SIZE);
 	region_size = ALIGN(start_offset + map_size, lcm_align);
 
 	/* allocate chunk */
+	// IMRT >> + BIT.... 은 pcpu_chunk의 populated 배열의 개수를 의미.
 	chunk = memblock_virt_alloc(sizeof(struct pcpu_chunk) +
 				    BITS_TO_LONGS(region_size >> PAGE_SHIFT),
 				    0);
@@ -1104,6 +1106,7 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	chunk->end_offset = region_size - chunk->start_offset - map_size;
 
 	chunk->nr_pages = region_size >> PAGE_SHIFT;
+	// IMRT chunk->nr_pages * 1k
 	region_bits = pcpu_chunk_map_bits(chunk);
 
 	chunk->alloc_map = memblock_virt_alloc(BITS_TO_LONGS(region_bits) *
@@ -1116,8 +1119,10 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 
 	/* manage populated page bitmap */
 	chunk->immutable = true;
+	// IMRT >> populated 배열 : 현재 chunk에 할당된 page에 대한 map
 	bitmap_fill(chunk->populated, chunk->nr_pages);
 	chunk->nr_populated = chunk->nr_pages;
+	// IMRT >> populated map으로 관리하는 page 중 사용하고 있지 않은 page 개수 
 	chunk->nr_empty_pop_pages =
 		pcpu_cnt_pop_pages(chunk, start_offset / PCPU_MIN_ALLOC_SIZE,
 				   map_size / PCPU_MIN_ALLOC_SIZE);
@@ -1125,6 +1130,8 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	chunk->contig_bits = map_size / PCPU_MIN_ALLOC_SIZE;
 	chunk->free_bytes = map_size;
 
+	// IMRT >> start_offset과 end_offset의 MIN_ALLOC_SIZE 단위로 사용하지
+	// 못 하는 부분의 bitmap을 offset을 설정하여 가려준다.
 	if (chunk->start_offset) {
 		/* hide the beginning of the bitmap */
 		offset_bits = chunk->start_offset / PCPU_MIN_ALLOC_SIZE;
@@ -1134,6 +1141,7 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 
 		chunk->first_bit = offset_bits;
 
+		// IMRT >> metadate block을 채워넣는다.
 		pcpu_block_update_hint_alloc(chunk, 0, offset_bits);
 	}
 
@@ -2157,6 +2165,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	 * pcpu_first_chunk, will always point to the chunk that serves
 	 * the dynamic region.
 	 */
+	
 	tmp_addr = (unsigned long)base_addr + static_size;
 	map_size = ai->reserved_size ?: dyn_size;
 	chunk = pcpu_alloc_first_chunk(tmp_addr, map_size);
@@ -2174,8 +2183,10 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	/* link the first chunk in */
 	pcpu_first_chunk = chunk;
 	pcpu_nr_empty_pop_pages = pcpu_first_chunk->nr_empty_pop_pages;
+	// IMRT >> chunk를 slot으로 옮겨준다.
 	pcpu_chunk_relocate(pcpu_first_chunk, -1);
 
+	// IMRT >> chunk가 하나 추가 됐음을 알려준다.
 	pcpu_stats_chunk_alloc();
 	trace_percpu_create_chunk(base_addr);
 
@@ -2291,7 +2302,7 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 	 * which can accommodate 4k aligned segments which are equal to
 	 * or larger than min_unit_size.
 	 */
-	// IMRT > 하나의 유닛에는 최소 32k(4k X 8)개의 페이지가 들어가 있어야 한다.
+	// IMRT > 하나의 유닛에는 최소 32k(4k X 8개) size 이다.
 	min_unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
 
 	/* determine the maximum # of units that can fit in an allocation */
@@ -2716,6 +2727,7 @@ void __init setup_per_cpu_areas(void)
 	rc = pcpu_embed_first_chunk(PERCPU_MODULE_RESERVE,
 				    PERCPU_DYNAMIC_RESERVE, PAGE_SIZE, NULL,
 				    pcpu_dfl_fc_alloc, pcpu_dfl_fc_free);
+
 	if (rc < 0)
 		panic("Failed to initialize percpu areas.");
 
