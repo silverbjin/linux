@@ -564,8 +564,11 @@ asmlinkage __visible void __init start_kernel(void)
 	setup_command_line(command_line);
 	// IMRT >> cpu id의 갯수(nr_cpu_ids)를 설정함
 	setup_nr_cpu_ids();
+	// IMRT >> percpu area관련 변수를 초기화하고, offset을 저장한다. 
 	setup_per_cpu_areas();
+	// IMRT >> bootcpu의 process id를 불러와 CPUHP_ONLINE으로 state를 설정한다.
 	boot_cpu_state_init();
+	// IMRT >>
 	smp_prepare_boot_cpu();	/* arch-specific boot-cpu hooks */
 
 	build_all_zonelists(NULL);
