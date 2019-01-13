@@ -159,13 +159,18 @@ static void __init smp_build_mpidr_hash(void)
 	 * of CPUs that is not an exact power of 2 and their bit
 	 * representation might contain holes, eg MPIDR_EL1[7:0] = {0x2, 0x80}.
 	 */
+	// IMRT >> MPIDR register에서 불필요한 reserved bits를 없애는 과정을 hash라고 함
+	// 예) 1011 [0]1011[0]  ==> 1011/1011
+	// hash(mpidr) { return mpidr >> shift_aff[0] | mpidr >> shift_aff[1] | mpidr >> shift_aff[2] } 
 	mpidr_hash.shift_aff[0] = MPIDR_LEVEL_SHIFT(0) + fs[0];
 	mpidr_hash.shift_aff[1] = MPIDR_LEVEL_SHIFT(1) + fs[1] - bits[0];
 	mpidr_hash.shift_aff[2] = MPIDR_LEVEL_SHIFT(2) + fs[2] -
 						(bits[1] + bits[0]);
 	mpidr_hash.shift_aff[3] = MPIDR_LEVEL_SHIFT(3) +
 				  fs[3] - (bits[2] + bits[1] + bits[0]);
+	// IMRT >> mask: boot cpu와 비교 시 logical cpu id가 변화되는 비트
 	mpidr_hash.mask = mask;
+	// IMRT >> bits: valid한 range 의 합
 	mpidr_hash.bits = bits[3] + bits[2] + bits[1] + bits[0];
 	pr_debug("MPIDR hash: aff0[%u] aff1[%u] aff2[%u] aff3[%u] mask[%#llx] bits[%u]\n",
 		mpidr_hash.shift_aff[0],
@@ -218,7 +223,9 @@ static void __init request_standard_resources(void)
 	kernel_data.end     = __pa_symbol(_end - 1);
 
 	for_each_memblock(memory, region) {
-		res = alloc_bootmem_low(sizeof(*res));
+        // IMRT >> struct resource를 최대한 아래의 메모리에서 할당 받으려 함
+		res = alloc_bootmem_low(sizeof(*res)); 
+        // IMRT >> memory region이 mapping 되어 있지 않은 경우 reserved, mapping이 되어 있는 경우 system ram & busy
 		if (memblock_is_nomap(region)) {
 			res->name  = "reserved";
 			res->flags = IORESOURCE_MEM;
@@ -229,8 +236,10 @@ static void __init request_standard_resources(void)
 		res->start = __pfn_to_phys(memblock_region_memory_base_pfn(region));
 		res->end = __pfn_to_phys(memblock_region_memory_end_pfn(region)) - 1;
 
+        // IMRT >> iomem_resource root 노드에 res 노드를 추가한다.
 		request_resource(&iomem_resource, res);
 
+        // IMRT >> 만약 res가 kernel_code/data 범위를 포함하면 res 하위 항목에 자식 node로써 추가
 		if (kernel_code.start >= res->start &&
 		    kernel_code.end <= res->end)
 			request_resource(res, &kernel_code);
@@ -239,6 +248,7 @@ static void __init request_standard_resources(void)
 			request_resource(res, &kernel_data);
 #ifdef CONFIG_KEXEC_CORE
 		/* Userspace will find "Crash kernel" region in /proc/iomem. */
+        // IMRT >> Kernel crash시, dump를 저장을 하는 영역
 		if (crashk_res.end && crashk_res.start >= res->start &&
 		    crashk_res.end <= res->end)
 			request_resource(res, &crashk_res);
@@ -309,31 +319,36 @@ void __init setup_arch(char **cmdline_p)
 	// TOT0Ro >> memblock를 모두 page로 매핑. 커널 페이지도 페이지로 관리.
 	paging_init();
 
-	// TOT0Ro-qemu >> return됨.
 	acpi_table_upgrade();
 
 
 	// IMRT : 추후 필요시 분석 예정
 	/* Parse the ACPI tables for possible boot-time configuration */
-	// IMRT(TOT0Ro-qemu) > acpi_disabled 가 0이됨.
 	acpi_boot_table_init();
 
 	if (acpi_disabled)
 		unflatten_device_tree();
 
+    // IMRT >> 노드 등의 메모리 레이아웃 초기화
 	bootmem_init();
 
+    // IMRT >> Kernel Address Sanitizer; Memory out of bounds, use after free error 잡기 위함
 	kasan_init();
 
+    // IMRT >> 메모리에 대한 resource 구조체를 tree 형태로 초기화
 	request_standard_resources();
 
+    // IMRT >> after_paging_init == 1로 세팅
 	early_ioremap_reset();
 
+    // IMRT >> acpi_disabed = 1
 	if (acpi_disabled)
+        // IMRT >> PSCI 드라이버 초기화(CPU 상태관리 기능)
 		psci_dt_init();
 	else
 		psci_acpi_init();
 
+    // IMRT >> 0번 CPU가 해야 할 기능들을 인터페이스에 넣어준다.
 	cpu_read_bootcpu_ops();
 	smp_init_cpus();
 	smp_build_mpidr_hash();
@@ -344,6 +359,7 @@ void __init setup_arch(char **cmdline_p)
 	 * faults in case uaccess_enable() is inadvertently called by the init
 	 * thread.
 	 */
+	// IMRT >> ttbr0를 disable함
 	init_task.thread_info.ttbr0 = __pa_symbol(empty_zero_page);
 #endif
 

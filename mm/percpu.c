@@ -1089,10 +1089,12 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	 * PCPU_BITMAP_BLOCK_SIZE.  One of these constants is a multiple of
 	 * the other.
 	 */
+	// IMRT >> 4k.
 	lcm_align = lcm(PAGE_SIZE, PCPU_BITMAP_BLOCK_SIZE);
 	region_size = ALIGN(start_offset + map_size, lcm_align);
 
 	/* allocate chunk */
+	// IMRT >> + BIT.... 은 pcpu_chunk의 populated 배열의 개수를 의미.
 	chunk = memblock_virt_alloc(sizeof(struct pcpu_chunk) +
 				    BITS_TO_LONGS(region_size >> PAGE_SHIFT),
 				    0);
@@ -1104,6 +1106,7 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	chunk->end_offset = region_size - chunk->start_offset - map_size;
 
 	chunk->nr_pages = region_size >> PAGE_SHIFT;
+	// IMRT chunk->nr_pages * 1k
 	region_bits = pcpu_chunk_map_bits(chunk);
 
 	chunk->alloc_map = memblock_virt_alloc(BITS_TO_LONGS(region_bits) *
@@ -1116,8 +1119,10 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 
 	/* manage populated page bitmap */
 	chunk->immutable = true;
+	// IMRT >> populated 배열 : 현재 chunk에 할당된 page에 대한 map
 	bitmap_fill(chunk->populated, chunk->nr_pages);
 	chunk->nr_populated = chunk->nr_pages;
+	// IMRT >> populated map으로 관리하는 page 중 사용하고 있지 않은 page 개수 
 	chunk->nr_empty_pop_pages =
 		pcpu_cnt_pop_pages(chunk, start_offset / PCPU_MIN_ALLOC_SIZE,
 				   map_size / PCPU_MIN_ALLOC_SIZE);
@@ -1125,6 +1130,8 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 	chunk->contig_bits = map_size / PCPU_MIN_ALLOC_SIZE;
 	chunk->free_bytes = map_size;
 
+	// IMRT >> start_offset과 end_offset의 MIN_ALLOC_SIZE 단위로 사용하지
+	// 못 하는 부분의 bitmap을 offset을 설정하여 가려준다.
 	if (chunk->start_offset) {
 		/* hide the beginning of the bitmap */
 		offset_bits = chunk->start_offset / PCPU_MIN_ALLOC_SIZE;
@@ -1134,6 +1141,7 @@ static struct pcpu_chunk * __init pcpu_alloc_first_chunk(unsigned long tmp_addr,
 
 		chunk->first_bit = offset_bits;
 
+		// IMRT >> metadate block을 채워넣는다.
 		pcpu_block_update_hint_alloc(chunk, 0, offset_bits);
 	}
 
@@ -2157,6 +2165,7 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	 * pcpu_first_chunk, will always point to the chunk that serves
 	 * the dynamic region.
 	 */
+	
 	tmp_addr = (unsigned long)base_addr + static_size;
 	map_size = ai->reserved_size ?: dyn_size;
 	chunk = pcpu_alloc_first_chunk(tmp_addr, map_size);
@@ -2174,8 +2183,10 @@ int __init pcpu_setup_first_chunk(const struct pcpu_alloc_info *ai,
 	/* link the first chunk in */
 	pcpu_first_chunk = chunk;
 	pcpu_nr_empty_pop_pages = pcpu_first_chunk->nr_empty_pop_pages;
+	// IMRT >> chunk를 slot으로 옮겨준다.
 	pcpu_chunk_relocate(pcpu_first_chunk, -1);
 
+	// IMRT >> chunk가 하나 추가 됐음을 알려준다.
 	pcpu_stats_chunk_alloc();
 	trace_percpu_create_chunk(base_addr);
 
@@ -2221,6 +2232,7 @@ early_param("percpu_alloc", percpu_alloc_setup);
  * Build it if needed by the arch config or the generic setup is going
  * to be used.
  */
+// TOT0Ro >> 두 config yes 
 #if defined(CONFIG_NEED_PER_CPU_EMBED_FIRST_CHUNK) || \
 	!defined(CONFIG_HAVE_SETUP_PER_CPU_AREA)
 #define BUILD_EMBED_FIRST_CHUNK
@@ -2261,6 +2273,8 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 {
 	static int group_map[NR_CPUS] __initdata;
 	static int group_cnt[NR_CPUS] __initdata;
+	// IMRT > vmlinux.lds.h 파일에 __per_cpu_end와 __per_cpu_start가 정의되어 있다.
+	//      > .data..percpu영역의 크기와 같다
 	const size_t static_size = __per_cpu_end - __per_cpu_start;
 	int nr_groups = 1, nr_units = 0;
 	size_t size_sum, min_unit_size, alloc_size;
@@ -2269,12 +2283,16 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 	unsigned int cpu, tcpu;
 	struct pcpu_alloc_info *ai;
 	unsigned int *cpu_map;
-
+	// IMRT > group 관련 변수를 초기화 한다.
+	//      > group = node
+	//      > group_map = cpu가 어느 그룹(노드)에 속하는가에 대한 정보. group_map[index]의 index는 cpu number
+	//      > group_cnt = 해당 그룹에 cpu가 몇개 있는가. group_cnt[index]의 index는 그룹(노드) id.
 	/* this function may be called multiple times */
 	memset(group_map, 0, sizeof(group_map));
 	memset(group_cnt, 0, sizeof(group_cnt));
 
 	/* calculate size_sum and ensure dyn_size is enough for early alloc */
+	// IMRT > size_sum = 하나의 유닛의 size. 
 	size_sum = PFN_ALIGN(static_size + reserved_size +
 			    max_t(size_t, dyn_size, PERCPU_DYNAMIC_EARLY_SIZE));
 	dyn_size = size_sum - static_size - reserved_size;
@@ -2285,15 +2303,21 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 	 * which can accommodate 4k aligned segments which are equal to
 	 * or larger than min_unit_size.
 	 */
+	// IMRT > 하나의 유닛에는 최소 32k(4k X 8개) size 이다.
 	min_unit_size = max_t(size_t, size_sum, PCPU_MIN_UNIT_SIZE);
 
 	/* determine the maximum # of units that can fit in an allocation */
 	alloc_size = roundup(min_unit_size, atom_size);
+	// IMRT > alloc마다 몇개의 unit이 들어가는지 계산한다. (upa = unit per alloc)
+	//	     > ARM64의 경우 항상 1 (atom_size = 4k)
 	upa = alloc_size / min_unit_size;
+	// IMRT > while문은 타지 않는다. max_upa = 1
 	while (alloc_size % upa || (offset_in_page(alloc_size / upa)))
 		upa--;
 	max_upa = upa;
 
+	// IMRT > cpu를 grouping 한다. (노드별로 구분한다.) 
+	//      > NUMA/EMBED config 설정시, cpu_distance_fn은 pcpu_cpu_distance이다.
 	/* group cpus according to their proximity */
 	for_each_possible_cpu(cpu) {
 		group = 0;
@@ -2318,10 +2342,18 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 	 * Expand the unit_size until we use >= 75% of the units allocated.
 	 * Related to atom_size, which could be much larger than the unit_size.
 	 */
+	// IMRT >> max_upa가 1 이상인 경우(Atom size가 unit size보다 2배 이상 큰 경우) 최적의 upa를 찾는다.
+	//      >> 최적의 upa = wasted alloc의 갯수가 최소가 되며, alloc의 갯수 역시 최소가 되는 upa 값
+	//      >> 순서는 upa를 줄여 나가면서 
+	// 		1. wasted가 전체 cpu갯수의 1/3 이상인 경우 continue
+	// 		2. wasted가 전체 cpu갯수의 1/3 이하인 경우에도 이전 alloc과 alloc의 갯수가 동일하면, continue.
+	// 		3. 더 upa를 줄이면 alloc의 갯수가 늘어날 경우 stop 
+	//			> ARM64에서는 max_upa가 항상 1이기 때문에 무의미.
 	last_allocs = INT_MAX;
 	for (upa = max_upa; upa; upa--) {
 		int allocs = 0, wasted = 0;
 
+		// IMRT > 이 line 때문에, upa는 항상 2^ 무의미
 		if (alloc_size % upa || (offset_in_page(alloc_size / upa)))
 			continue;
 
@@ -2390,6 +2422,7 @@ static struct pcpu_alloc_info * __init pcpu_build_alloc_info(
 }
 #endif /* BUILD_EMBED_FIRST_CHUNK || BUILD_PAGE_FIRST_CHUNK */
 
+// TOT0Ro >> true
 #if defined(BUILD_EMBED_FIRST_CHUNK)
 /**
  * pcpu_embed_first_chunk - embed the first percpu chunk into bootmem
@@ -2475,6 +2508,7 @@ int __init pcpu_embed_first_chunk(size_t reserved_size, size_t dyn_size,
 		if (ptr > areas[highest_group])
 			highest_group = group;
 	}
+	// TOT0Ro >> first group의 처음부터 highest group의 끝.
 	max_distance = areas[highest_group] - base;
 	max_distance += ai->unit_size * ai->groups[highest_group].nr_units;
 
@@ -2511,6 +2545,7 @@ int __init pcpu_embed_first_chunk(size_t reserved_size, size_t dyn_size,
 	}
 
 	/* base address is now known, determine group base offsets */
+	// TOT0Ro >> group별 base offset 구하기.
 	for (group = 0; group < ai->nr_groups; group++) {
 		ai->groups[group].base_offset = areas[group] - base;
 	}
@@ -2696,6 +2731,7 @@ void __init setup_per_cpu_areas(void)
 	rc = pcpu_embed_first_chunk(PERCPU_MODULE_RESERVE,
 				    PERCPU_DYNAMIC_RESERVE, PAGE_SIZE, NULL,
 				    pcpu_dfl_fc_alloc, pcpu_dfl_fc_free);
+
 	if (rc < 0)
 		panic("Failed to initialize percpu areas.");
 
