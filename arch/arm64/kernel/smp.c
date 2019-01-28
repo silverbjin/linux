@@ -85,43 +85,6 @@ enum ipi_msg_type {
 	IPI_WAKEUP
 };
 
-#ifdef CONFIG_ARM64_VHE
-
-/* Whether the boot CPU is running in HYP mode or not*/
-static bool boot_cpu_hyp_mode;
-
-static inline void save_boot_cpu_run_el(void)
-{
-	boot_cpu_hyp_mode = is_kernel_in_hyp_mode();
-}
-
-static inline bool is_boot_cpu_in_hyp_mode(void)
-{
-	return boot_cpu_hyp_mode;
-}
-
-/*
- * Verify that a secondary CPU is running the kernel at the same
- * EL as that of the boot CPU.
- */
-void verify_cpu_run_el(void)
-{
-	bool in_el2 = is_kernel_in_hyp_mode();
-	bool boot_cpu_el2 = is_boot_cpu_in_hyp_mode();
-
-	if (in_el2 ^ boot_cpu_el2) {
-		pr_crit("CPU%d: mismatched Exception Level(EL%d) with boot CPU(EL%d)\n",
-					smp_processor_id(),
-					in_el2 ? 2 : 1,
-					boot_cpu_el2 ? 2 : 1);
-		cpu_panic_kernel();
-	}
-}
-
-#else
-static inline void save_boot_cpu_run_el(void) {}
-#endif
-
 #ifdef CONFIG_HOTPLUG_CPU
 static int op_cpu_kill(unsigned int cpu);
 #else
@@ -216,7 +179,7 @@ int __cpu_up(unsigned int cpu, struct task_struct *idle)
  * This is the secondary CPU boot entry.  We're using this CPUs
  * idle thread stack, but a set of temporary page tables.
  */
-asmlinkage void secondary_start_kernel(void)
+asmlinkage notrace void secondary_start_kernel(void)
 {
 	u64 mpidr = read_cpuid_mpidr() & MPIDR_HWID_BITMASK;
 	struct mm_struct *mm = &init_mm;
@@ -458,6 +421,7 @@ void __init smp_prepare_boot_cpu(void)
 	// IMRT >> logical cpu 0에서 읽어온 cpu 정보를 per_cpu로 할달되어있는
 	// cpuinfo_arm64 구조체에 설정
 	cpuinfo_store_boot_cpu();
+<<<<<<< HEAD
 	// IMRT >> 현재 Exception Level이 hypervisor mode (EL2)인지 여부를
 	// boot_cpu_hyp_mode에 넣는다.
 	save_boot_cpu_run_el();
@@ -469,6 +433,8 @@ void __init smp_prepare_boot_cpu(void)
 	// IMRT >> errata: 가능한 에러상황을 회피할 수 있도록 오류 히스토리를 모아둠.
 	// errata를 업데이트함
 	update_cpu_errata_workarounds();
+=======
+>>>>>>> 864af0d40cdc82b705e3ca79cf2a57be900954b1
 }
 
 static u64 __init of_get_cpu_mpidr(struct device_node *dn)
